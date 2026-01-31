@@ -18,6 +18,9 @@ while(True):
     edges = cv2.Canny(gray,100,200)
     # Display the resulting frame
     cv2.imshow('frame',edges)
+
+
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 # When everything done, release the capture
