@@ -50,7 +50,7 @@ while True:
         circularity = 4.0 * np.pi * area / (perimeter * perimeter)  # 1.0 = perfect circle
 
         # Lids/rims usually have moderately high circularity
-        if circularity < 0.0:
+        if circularity < 0.4:
             continue
 
         # Fit ellipse if enough points, helps reject non-rim shapes

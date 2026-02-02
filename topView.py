@@ -1,6 +1,17 @@
 import cv2
 import numpy as np
 
+# Try different backends - V4L2 often works better on Pi
+cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+# Optional: improve contour stability
+KERNEL = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+
+
+
 def order_points(pts):
     # pts: (4,2)
     rect = np.zeros((4, 2), dtype="float32")
@@ -35,6 +46,16 @@ def four_point_warp(image, pts, out_w=None, out_h=None):
     warped = cv2.warpPerspective(image, M, (maxW, maxH))
     return warped, M
 
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    pts = np.array([[50,50],[0,100],[100,50],[150,100]])
+
+    frame_adjusted, m = four_point_warp(frame,pts)
+
+    cv2.imshow(frame_adjusted)
 # Example usage:
 # frame = cv2.imread("angled.jpg")
 
