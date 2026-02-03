@@ -18,12 +18,12 @@ MAX_COMP_PIX = 4000         # reject giant components (table lines etc.)
 MIN_AXIS = 40          # px; reject tiny ellipses
 MAX_AXIS = 380              # px; reject huge ellipses
 
-MIN_ASPECT = 0.18           # min(minAxis/maxAxis)
+MIN_ASPECT = 0.3           # min(minAxis/maxAxis)
 MAX_ASPECT = 1.00
 
-SAMPLE_N = 80              # points sampled along ellipse perimeter for scoring
-RING_THICK = 8              # px tolerance for edge hit near perimeter point
-SUPPORT_THRESH = 0.1       # required perimeter support ratio
+SAMPLE_N = 300              # points sampled along ellipse perimeter for scoring
+RING_THICK = 5              # px tolerance for edge hit near perimeter point
+SUPPORT_THRESH = 0.6       # required perimeter support ratio
 
 NMS_CENTER_DIST = 18        # px
 NMS_AXIS_DIST = 12          # px
@@ -81,12 +81,13 @@ while True:
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    blur = cv2.GaussianBlur(blur, (5, 5), 0)
 
     edges = cv2.Canny(blur, CANNY_LO, CANNY_HI)
 
     # Stabilize edges slightly (does not change the look much)
     edges_stable = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, K3, iterations=1)
-    edges_stable = cv2.dilate(edges_stable, K3, iterations=5)
+    edges_stable = cv2.dilate(edges_stable, K3, iterations=3)
 
     # Connected components on edge pixels (no requirement for closed contours)
     num, labels, stats, _ = cv2.connectedComponentsWithStats((edges_stable > 0).astype(np.uint8), connectivity=8)
