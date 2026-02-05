@@ -1,12 +1,14 @@
 import numpy as np
 import cv2
 
-cap = cv2.VideoCapture(0) #, cv2.CAP_V4L2)
+cap = cv2.VideoCapture(0,cv2.CAP_V4L2)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+cap.set(cv2.CAP_PROP_CONTRAST, 50)
 
 K3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 K5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+
 
 # ---- Tunables ----
 CANNY_LO, CANNY_HI = 80, 160
@@ -30,6 +32,7 @@ cv2.createTrackbar("Support Thresh x100", "Tuning", 60, 100, lambda x: None)
 cv2.createTrackbar("Dilate Iterations", "Tuning", 3, 10, lambda x: None)
 cv2.createTrackbar("Canny Low", "Tuning", 80, 255, lambda x: None)
 cv2.createTrackbar("Min Axis", "Tuning", 40, 200, lambda x: None)
+cv2.createTrackbar("Mask Lower", "Tuning", 0, 255, lambda x: None)
 
 NMS_CENTER_DIST = 18        # px
 NMS_AXIS_DIST = 12          # px
@@ -83,6 +86,18 @@ while True:
     if not ret:
         break
 
+    img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)   # Convert to RGB for display
+
+    MASK_LOWER = cv2.getTrackbarPos("Mask Lower", "Tuning")
+
+    lower = np.array([MASK_LOWER, MASK_LOWER, MASK_LOWER])  # Minimum HSV range
+    upper = np.array([255, 255, 255])  # Maximum HSV range
+    mask0 = cv2.inRange(frame, lower, upper)     # Initial binary mask
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7,7))
+    mask = cv2.morphologyEx(mask0, cv2.MORPH_CLOSE, kernel, iterations=2)
+    mask = cv2.morphologyEx(mask,  cv2.MORPH_OPEN,  kernel, iterations=2)
+    frame = cv2.bitwise_and(frame,frame,mask=mask)
+    
     # Get trackbar values
     RING_THICK = cv2.getTrackbarPos("Ring Thick", "Tuning")
     SUPPORT_THRESH = cv2.getTrackbarPos("Support Thresh x100", "Tuning") / 100.0
@@ -96,6 +111,7 @@ while True:
     CANNY_HI = CANNY_LO * 2
 
     out = frame.copy()
+    
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -154,7 +170,7 @@ while True:
     cv2.imshow("edges_canny", edges)
     cv2.imshow("edges_stable", edges_stable)
     cv2.imshow("ellipses", out)
-
+    cv2.imshow("Mask",mask)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 

@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-cap = cv2.VideoCapture(0) #, cv2.CAP_V4L2)
+cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
@@ -22,14 +22,8 @@ MIN_ASPECT = 0.3           # min(minAxis/maxAxis)
 MAX_ASPECT = 1.00
 
 SAMPLE_N = 300              # points sampled along ellipse perimeter for scoring
-
-# Create window for trackbars
-cv2.namedWindow("Tuning")
-cv2.createTrackbar("Ring Thick", "Tuning", 5, 20, lambda x: None)
-cv2.createTrackbar("Support Thresh x100", "Tuning", 60, 100, lambda x: None)
-cv2.createTrackbar("Dilate Iterations", "Tuning", 3, 10, lambda x: None)
-cv2.createTrackbar("Canny Low", "Tuning", 80, 255, lambda x: None)
-cv2.createTrackbar("Min Axis", "Tuning", 40, 200, lambda x: None)
+RING_THICK = 5              # px tolerance for edge hit near perimeter point
+SUPPORT_THRESH = 0.6       # required perimeter support ratio
 
 NMS_CENTER_DIST = 18        # px
 NMS_AXIS_DIST = 12          # px
@@ -83,29 +77,17 @@ while True:
     if not ret:
         break
 
-    # Get trackbar values
-    RING_THICK = cv2.getTrackbarPos("Ring Thick", "Tuning")
-    SUPPORT_THRESH = cv2.getTrackbarPos("Support Thresh x100", "Tuning") / 100.0
-    DILATE_ITER = cv2.getTrackbarPos("Dilate Iterations", "Tuning")
-    CANNY_LO = cv2.getTrackbarPos("Canny Low", "Tuning")
-    MIN_AXIS = cv2.getTrackbarPos("Min Axis", "Tuning")
-    
-    # Prevent CANNY_LO from being 0
-    if CANNY_LO == 0:
-        CANNY_LO = 1
-    CANNY_HI = CANNY_LO * 2
-
     out = frame.copy()
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    blur = cv2.GaussianBlur(blur, (5, 5), 0)
+    #blur = cv2.GaussianBlur(blur, (5, 5), 0)
 
     edges = cv2.Canny(blur, CANNY_LO, CANNY_HI)
 
     # Stabilize edges slightly (does not change the look much)
     edges_stable = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, K3, iterations=1)
-    edges_stable = cv2.dilate(edges_stable, K3, iterations=DILATE_ITER)
+    edges_stable = cv2.dilate(edges_stable, K3, iterations=3)
 
     # Connected components on edge pixels (no requirement for closed contours)
     num, labels, stats, _ = cv2.connectedComponentsWithStats((edges_stable > 0).astype(np.uint8), connectivity=8)
