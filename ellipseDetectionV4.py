@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+cap = cv2.VideoCapture(1,cv2.CAP_DSHOW) # (0, cv2.CAP_V4L2)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 cap.set(cv2.CAP_PROP_CONTRAST, 50)
@@ -15,16 +15,30 @@ CANNY_LO, CANNY_HI = 80, 160
 MIN_COMP_PIX = 90
 MAX_COMP_PIX = 4000
 
-MIN_AXIS = 40
-MAX_AXIS = 380
+MIN_MAJOR_AXIS = 40
+MIN_MINOR_AXIS = 12
+MAX_AXIS = 200
 
-MIN_ASPECT = 0.3
+MIN_ASPECT = 0.18
 MAX_ASPECT = 1.00
 
 SAMPLE_N = 300
 
+# robust fitting
+RANDOM_FIT_TRIALS = 22
+RANDOM_FIT_POINTS = 90
+MIN_CONTOUR_POINTS = 24
+
+# fit quality
+MIN_INLIER_SCORE = 0.52
+MIN_SUPPORT_FALLBACK = 0.28
+INLIER_TOL = 0.18
+STRICT_INLIER_SCORE = 0.72
+MIN_INLIER_POINTS = 30
+BRIDGE_ITER = 1
+
 # NMS
-NMS_CENTER_DIST = 18
+NMS_CENTER_DIST = 28
 NMS_AXIS_DIST = 12
 
 def ellipse_points(cx, cy, a, b, ang_deg, n=120):
@@ -53,18 +67,71 @@ def support_score(edges, cx, cy, MA, ma, angle_deg, thick=2, n=120):
             hits += 1
     return hits / float(n)
 
+def ellipse_inlier_score(points_xy, cx, cy, MA, ma, angle_deg, tol=0.18):
+    if len(points_xy) == 0:
+        return 0.0
+
+    a = MA / 2.0
+    b = ma / 2.0
+    if a <= 1e-6 or b <= 1e-6:
+        return 0.0
+
+    th = np.deg2rad(angle_deg)
+    c, s = np.cos(th), np.sin(th)
+
+    x = points_xy[:, 0].astype(np.float32) - cx
+    y = points_xy[:, 1].astype(np.float32) - cy
+
+    xr = c * x + s * y
+    yr = -s * x + c * y
+
+    val = (xr / a) ** 2 + (yr / b) ** 2
+    return float(np.mean(np.abs(val - 1.0) <= tol))
+
+def maybe_add_candidate(candidates, points_xy, edges_stable, cx, cy, MA, ma, angle, ring_thick, support_thresh):
+    major_axis = max(MA, ma)
+    minor_axis = min(MA, ma)
+
+    if major_axis < MIN_MAJOR_AXIS or minor_axis < MIN_MINOR_AXIS or major_axis > MAX_AXIS:
+        return
+
+    aspect = minor_axis / major_axis
+    if not (MIN_ASPECT <= aspect <= MAX_ASPECT):
+        return
+
+    sc = support_score(edges_stable, cx, cy, MA, ma, angle, thick=ring_thick, n=SAMPLE_N)
+    inlier = ellipse_inlier_score(points_xy, cx, cy, MA, ma, angle, tol=INLIER_TOL)
+
+    keep = (
+        (sc >= support_thresh)
+        or (sc >= MIN_SUPPORT_FALLBACK and inlier >= MIN_INLIER_SCORE)
+        or (inlier >= STRICT_INLIER_SCORE and len(points_xy) >= MIN_INLIER_POINTS)
+    )
+    if not keep:
+        return
+
+    candidates.append({
+        "cx": cx,
+        "cy": cy,
+        "MA": MA,
+        "ma": ma,
+        "angle": angle,
+        "score": sc,
+        "inlier": inlier,
+        "rank": 0.55 * sc + 0.45 * inlier,
+    })
+
 def nms_ellipses(ells):
-    ells = sorted(ells, key=lambda d: d["score"], reverse=True)
+    ells = sorted(ells, key=lambda d: d["rank"], reverse=True)
     kept = []
     for e in ells:
-        ok = True
+        keep = True
         for k in kept:
             dc = np.hypot(e["cx"] - k["cx"], e["cy"] - k["cy"])
-            da = abs(e["MA"] - k["MA"]) + abs(e["ma"] - k["ma"])
-            if dc < NMS_CENTER_DIST and da < NMS_AXIS_DIST:
-                ok = False
+            if dc <= NMS_CENTER_DIST:
+                keep = False
                 break
-        if ok:
+        if keep:
             kept.append(e)
     return kept
 
@@ -153,14 +220,28 @@ def biggest_blue_roi(frame_bgr, pad=60, min_area=1500):
     return x0, y0, x1, y1, blue_mask
 
 # ---------- UI ----------
-cv2.namedWindow("Tuning")
+cv2.namedWindow("Tuning", cv2.WINDOW_NORMAL)
+cv2.resizeWindow("Tuning", 520, 720)
 
 cv2.createTrackbar("Ring Thick", "Tuning", 5, 20, lambda x: None)
 cv2.createTrackbar("Support Thresh x100", "Tuning", 60, 100, lambda x: None)
 cv2.createTrackbar("Dilate Iterations", "Tuning", 3, 10, lambda x: None)
 cv2.createTrackbar("Canny Low", "Tuning", 80, 255, lambda x: None)
-cv2.createTrackbar("Min Axis", "Tuning", 40, 200, lambda x: None)
+cv2.createTrackbar("Min Major Axis", "Tuning", 40, 250, lambda x: None)
+cv2.createTrackbar("Min Minor Axis", "Tuning", 12, 120, lambda x: None)
+cv2.createTrackbar("Max Axis", "Tuning", 180, 450, lambda x: None)
+cv2.createTrackbar("Min Aspect x100", "Tuning", 18, 100, lambda x: None)
 cv2.createTrackbar("Mask Lower", "Tuning", 0, 255, lambda x: None)
+cv2.createTrackbar("Fallback Supp x100", "Tuning", 28, 100, lambda x: None)
+cv2.createTrackbar("Min Inlier x100", "Tuning", 52, 100, lambda x: None)
+cv2.createTrackbar("Strict Inlier x100", "Tuning", 72, 100, lambda x: None)
+cv2.createTrackbar("Min Inlier Pts", "Tuning", 30, 300, lambda x: None)
+cv2.createTrackbar("Inlier Tol x100", "Tuning", 18, 60, lambda x: None)
+cv2.createTrackbar("Rand Fit Trials", "Tuning", 22, 80, lambda x: None)
+cv2.createTrackbar("Rand Fit Points", "Tuning", 90, 220, lambda x: None)
+cv2.createTrackbar("Min Cnt Pts", "Tuning", 24, 200, lambda x: None)
+cv2.createTrackbar("Bridge Iter", "Tuning", 1, 6, lambda x: None)
+cv2.createTrackbar("NMS Ctr Dist", "Tuning", 28, 120, lambda x: None)
 
 # new ROI controls
 cv2.createTrackbar("Use Red ROI", "Tuning", 1, 1, lambda x: None)
@@ -204,7 +285,20 @@ while True:
     SUPPORT_THRESH = cv2.getTrackbarPos("Support Thresh x100", "Tuning") / 100.0
     DILATE_ITER = cv2.getTrackbarPos("Dilate Iterations", "Tuning")
     CANNY_LO = cv2.getTrackbarPos("Canny Low", "Tuning")
-    MIN_AXIS = cv2.getTrackbarPos("Min Axis", "Tuning")
+    MIN_MAJOR_AXIS = cv2.getTrackbarPos("Min Major Axis", "Tuning")
+    MIN_MINOR_AXIS = cv2.getTrackbarPos("Min Minor Axis", "Tuning")
+    MAX_AXIS = max(MIN_MAJOR_AXIS + 1, cv2.getTrackbarPos("Max Axis", "Tuning"))
+    MIN_ASPECT = cv2.getTrackbarPos("Min Aspect x100", "Tuning") / 100.0
+    MIN_SUPPORT_FALLBACK = cv2.getTrackbarPos("Fallback Supp x100", "Tuning") / 100.0
+    MIN_INLIER_SCORE = cv2.getTrackbarPos("Min Inlier x100", "Tuning") / 100.0
+    STRICT_INLIER_SCORE = cv2.getTrackbarPos("Strict Inlier x100", "Tuning") / 100.0
+    MIN_INLIER_POINTS = max(5, cv2.getTrackbarPos("Min Inlier Pts", "Tuning"))
+    INLIER_TOL = max(0.01, cv2.getTrackbarPos("Inlier Tol x100", "Tuning") / 100.0)
+    RANDOM_FIT_TRIALS = cv2.getTrackbarPos("Rand Fit Trials", "Tuning")
+    RANDOM_FIT_POINTS = max(5, cv2.getTrackbarPos("Rand Fit Points", "Tuning"))
+    MIN_CONTOUR_POINTS = max(5, cv2.getTrackbarPos("Min Cnt Pts", "Tuning"))
+    BRIDGE_ITER = cv2.getTrackbarPos("Bridge Iter", "Tuning")
+    NMS_CENTER_DIST = max(1, cv2.getTrackbarPos("NMS Ctr Dist", "Tuning"))
 
     if CANNY_LO == 0:
         CANNY_LO = 1
@@ -225,10 +319,43 @@ while True:
     edges_stable = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, K3, iterations=1)
     edges_stable = cv2.dilate(edges_stable, K3, iterations=DILATE_ITER)
 
+    # fit map: extra bridging for broken arcs; support still checked on edges_stable
+    if BRIDGE_ITER > 0:
+        edges_fit = cv2.morphologyEx(edges_stable, cv2.MORPH_CLOSE, K5, iterations=BRIDGE_ITER)
+        edges_fit = cv2.dilate(edges_fit, K3, iterations=BRIDGE_ITER)
+    else:
+        edges_fit = edges_stable
+
     # Connected components on ROI edges
-    num, labels, stats, _ = cv2.connectedComponentsWithStats((edges_stable > 0).astype(np.uint8), connectivity=8)
+    num, labels, stats, _ = cv2.connectedComponentsWithStats((edges_fit > 0).astype(np.uint8), connectivity=8)
 
     candidates = []
+
+    # Path A: contour-based fits (works better on open arc fragments)
+    cnts, _ = cv2.findContours(edges_fit, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+    for cnt in cnts:
+        if len(cnt) < MIN_CONTOUR_POINTS:
+            continue
+
+        pts_cnt = cnt.reshape(-1, 2).astype(np.float32)
+        if len(pts_cnt) < 5:
+            continue
+
+        (cc, rr), (MA, ma), angle = cv2.fitEllipse(cnt)
+        maybe_add_candidate(
+            candidates,
+            pts_cnt,
+            edges_stable,
+            cc,
+            rr,
+            MA,
+            ma,
+            angle,
+            RING_THICK,
+            SUPPORT_THRESH,
+        )
+
+    # Path B: component fits + random subset fits (handles merged overlapping rims)
     for lab in range(1, num):
         area = stats[lab, cv2.CC_STAT_AREA]
         if area < MIN_COMP_PIX or area > MAX_COMP_PIX:
@@ -238,22 +365,45 @@ while True:
         if len(xs) < 5:
             continue
 
-        pts = np.stack([xs, ys], axis=1).astype(np.int32).reshape(-1, 1, 2)
+        pts_xy = np.stack([xs, ys], axis=1).astype(np.float32)
+        pts_cv = pts_xy.astype(np.int32).reshape(-1, 1, 2)
 
-        (cx, cy), (MA, ma), angle = cv2.fitEllipse(pts)
+        (cx, cy), (MA, ma), angle = cv2.fitEllipse(pts_cv)
+        maybe_add_candidate(
+            candidates,
+            pts_xy,
+            edges_stable,
+            cx,
+            cy,
+            MA,
+            ma,
+            angle,
+            RING_THICK,
+            SUPPORT_THRESH,
+        )
 
-        if MA < MIN_AXIS or ma < MIN_AXIS or MA > MAX_AXIS or ma > MAX_AXIS:
-            continue
+        if len(pts_xy) >= RANDOM_FIT_POINTS:
+            for _ in range(RANDOM_FIT_TRIALS):
+                idx = np.random.choice(len(pts_xy), RANDOM_FIT_POINTS, replace=False)
+                sub = pts_xy[idx]
+                sub_cv = sub.astype(np.int32).reshape(-1, 1, 2)
+                try:
+                    (cx2, cy2), (MA2, ma2), ang2 = cv2.fitEllipse(sub_cv)
+                except cv2.error:
+                    continue
 
-        aspect = min(MA, ma) / max(MA, ma)
-        if not (MIN_ASPECT <= aspect <= MAX_ASPECT):
-            continue
-
-        sc = support_score(edges_stable, cx, cy, MA, ma, angle, thick=RING_THICK, n=SAMPLE_N)
-        if sc < SUPPORT_THRESH:
-            continue
-
-        candidates.append({"cx": cx, "cy": cy, "MA": MA, "ma": ma, "angle": angle, "score": sc})
+                maybe_add_candidate(
+                    candidates,
+                    pts_xy,
+                    edges_stable,
+                    cx2,
+                    cy2,
+                    MA2,
+                    ma2,
+                    ang2,
+                    RING_THICK,
+                    SUPPORT_THRESH,
+                )
 
     kept = nms_ellipses(candidates)
 
@@ -267,13 +417,14 @@ while True:
 
         cv2.ellipse(out, ((cx, cy), (MA, ma), angle), (0, 255, 0), 2)
         cv2.circle(out, (int(cx), int(cy)), 3, (0, 0, 255), -1)
-        cv2.putText(out, f'{e["score"]:.2f}', (int(cx) + 6, int(cy) - 6),
+        cv2.putText(out, f's:{e["score"]:.2f} i:{e["inlier"]:.2f}', (int(cx) + 6, int(cy) - 6),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
 
     # Display: show ROI edge maps but also a full-frame overlay
     cv2.imshow("ellipses", out)
     cv2.imshow("edges_canny_roi", edges)
     cv2.imshow("edges_stable_roi", edges_stable)
+    cv2.imshow("edges_fit_roi", edges_fit)
     cv2.imshow("Mask", mask)
     cv2.imshow("RedMask", redmask)
 
