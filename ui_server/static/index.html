@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Target UI</title>
+  <style>
+    :root{
+      --bg: #0f1115;
+      --panel: #171a21;
+      --panel2: #1f2430;
+      --text: #e9eef7;
+      --muted: #a9b4c7;
+      --accent: #4aa3ff;
+      --danger: #ff4d4d;
+      --ok: #2fe37a;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    .app {
+      height: 100%;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 16px;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .left {
+      background: var(--panel);
+      border-radius: 16px;
+      padding: 16px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .cups {
+      flex: 1;
+      background: var(--panel2);
+      border-radius: 14px;
+      padding: 16px;
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(90px, 1fr));
+      gap: 14px;
+      align-content: start;
+      overflow: auto;
+    }
+
+    .cup {
+      position: relative;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 10px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .cup:active {
+      transform: scale(0.98);
+    }
+
+    .cup img {
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
+      image-rendering: auto;
+      filter: drop-shadow(0 0 0 rgba(0,0,0,0));
+      transition: filter 160ms ease, opacity 160ms ease;
+    }
+
+    .cup .label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Lit state: glowing */
+    .cup.lit {
+      border-color: rgba(74, 163, 255, 0.55);
+      background: rgba(74, 163, 255, 0.08);
+    }
+    .cup.lit img {
+      filter: drop-shadow(0 0 10px rgba(74, 163, 255, 0.65));
+      opacity: 1;
+    }
+
+    /* Hit state: dimmed */
+    .cup.hit {
+      border-color: rgba(255, 255, 255, 0.10);
+      background: rgba(255,255,255,0.02);
+    }
+    .cup.hit img {
+      filter: none;
+      opacity: 0.28;
+    }
+    .cup.hit::after {
+      content: "HIT";
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 11px;
+      font-weight: 800;
+      color: rgba(255,255,255,0.75);
+      background: rgba(0,0,0,0.35);
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .right {
+      background: var(--panel);
+      border-radius: 16px;
+      padding: 16px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      padding: 14px 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn.primary { background: var(--accent); color: #08111f; }
+    .btn.ghost { background: rgba(255,255,255,0.08); color: var(--text); }
+    .btn.danger { background: var(--danger); color: #200808; }
+
+    .statusBox {
+      margin-top: 8px;
+      background: var(--panel2);
+      border-radius: 14px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 6px 0;
+      font-size: 13px;
+    }
+    .row .k { color: var(--muted); }
+    .row .v { color: var(--text); font-weight: 600; }
+
+    .log {
+      margin-top: 8px;
+      background: #0b0d12;
+      border-radius: 14px;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
+      color: #d7deea;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      height: 160px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    /* Settings modal */
+    .modalBackdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .modalBackdrop.open { display: flex; }
+
+    .modal {
+      width: min(560px, 100%);
+      background: var(--panel);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-sizing: border-box;
+    }
+    .modal h2 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+    }
+    .modal p {
+      margin: 0 0 14px 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .field {
+      display: grid;
+      grid-template-columns: 1fr 160px;
+      gap: 10px;
+      align-items: center;
+      margin: 10px 0;
+    }
+    .field label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .field input {
+      background: var(--panel2);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 14px;
+      outline: none;
+    }
+    .modalActions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+    .modalActions button {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 0;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .saveBtn { background: var(--ok); color: #062012; }
+    .closeBtn { background: rgba(255,255,255,0.10); color: var(--text); }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="left">
+      <div class="header">
+        <div>
+          <div class="title">System Online</div>
+          <div class="sub">Cups light up until hit. Click a cup to simulate a hit for now.</div>
+        </div>
+        <div class="sub" id="wsState">WS: connecting</div>
+      </div>
+
+      <div class="cups" id="cups"></div>
+    </div>
+
+    <div class="right">
+      <button class="btn primary" id="startBtn">Start</button>
+      <button class="btn ghost" id="resetBtn">Reset</button>
+      <button class="btn ghost" id="settingsBtn">Settings</button>
+
+      <div class="statusBox">
+        <div class="row"><div class="k">State</div><div class="v" id="gameState">idle</div></div>
+        <div class="row"><div class="k">Hits</div><div class="v" id="hitCount">0</div></div>
+        <div class="row"><div class="k">Heartbeat</div><div class="v" id="hbCount">0</div></div>
+      </div>
+
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="modalBackdrop" id="modalBackdrop">
+    <div class="modal">
+      <h2>Settings</h2>
+      <p>
+        These settings are placeholders. Later you can send them to your motor program and vision program.
+      </p>
+
+      <div class="field">
+        <label for="motorSpeed">Motor speed</label>
+        <input id="motorSpeed" type="number" value="50" min="0" max="100"/>
+      </div>
+
+      <div class="field">
+        <label for="visionThreshold">Vision threshold</label>
+        <input id="visionThreshold" type="number" value="0.75" step="0.01" min="0" max="1"/>
+      </div>
+
+      <div class="modalActions">
+        <button class="closeBtn" id="closeSettings">Close</button>
+        <button class="saveBtn" id="saveSettings">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CUP_COUNT = 10;
+
+    const cupsEl = document.getElementById("cups");
+    const logEl = document.getElementById("log");
+    const wsStateEl = document.getElementById("wsState");
+    const gameStateEl = document.getElementById("gameState");
+    const hitCountEl = document.getElementById("hitCount");
+    const hbCountEl = document.getElementById("hbCount");
+
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const motorSpeedEl = document.getElementById("motorSpeed");
+    const visionThresholdEl = document.getElementById("visionThreshold");
+
+    let gameState = "idle";
+    let hits = 0;
+
+    // Cup state: false = not hit (lit), true = hit (dim)
+    const cupHit = Array.from({ length: CUP_COUNT }, () => false);
+
+    function log(msg) {
+      const line = `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+      logEl.textContent = line + logEl.textContent;
+    }
+
+    function setGameState(s) {
+      gameState = s;
+      gameStateEl.textContent = s;
+    }
+
+    function renderCups() {
+      cupsEl.innerHTML = "";
+      for (let i = 0; i < CUP_COUNT; i++) {
+        const card = document.createElement("div");
+        card.className = "cup " + (cupHit[i] ? "hit" : "lit");
+        card.dataset.cupId = String(i + 1);
+
+        const img = document.createElement("img");
+        img.src = "cup.png";
+        img.alt = "cup";
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = `Cup ${i + 1}`;
+
+        card.appendChild(img);
+        card.appendChild(label);
+
+        card.onclick = () => {
+          // For now, clicking simulates a hit only when running
+          if (gameState !== "running") {
+            log(`Ignored click on Cup ${i + 1} (not running)`);
+            return;
+          }
+          markCupHit(i + 1);
+        };
+
+        cupsEl.appendChild(card);
+      }
+    }
+
+    function resetGame() {
+      for (let i = 0; i < CUP_COUNT; i++) cupHit[i] = false;
+      hits = 0;
+      hitCountEl.textContent = String(hits);
+      setGameState("idle");
+      renderCups();
+      log("Reset game");
+    }
+
+    function startGame() {
+      resetGame();
+      setGameState("running");
+      log("Start game");
+      // Later: send a start command to motor program
+      // sendCommand({ type: "start" });
+    }
+
+    // Integration ready API:
+    // call this from vision when it detects a hit
+    function markCupHit(cupId) {
+      const idx = cupId - 1;
+      if (idx < 0 || idx >= CUP_COUNT) return;
+      if (cupHit[idx]) return;
+
+      cupHit[idx] = true;
+      hits += 1;
+      hitCountEl.textContent = String(hits);
+      renderCups();
+      log(`HIT registered: Cup ${cupId}`);
+
+      // Later: notify backend or motor program if needed
+      // sendCommand({ type: "hit", cup_id: cupId });
+    }
+
+    function openSettings() {
+      modalBackdrop.classList.add("open");
+    }
+    function closeSettings() {
+      modalBackdrop.classList.remove("open");
+    }
+
+    function saveSettings() {
+      const settings = {
+        motor_speed: Number(motorSpeedEl.value),
+        vision_threshold: Number(visionThresholdEl.value),
+      };
+      log("Saved settings: " + JSON.stringify(settings));
+      closeSettings();
+
+      // Later: send settings to backend or motor service
+      // sendCommand({ type: "settings", ...settings });
+    }
+
+    document.getElementById("startBtn").onclick = startGame;
+    document.getElementById("resetBtn").onclick = resetGame;
+    document.getElementById("settingsBtn").onclick = openSettings;
+    document.getElementById("closeSettings").onclick = closeSettings;
+    document.getElementById("saveSettings").onclick = saveSettings;
+
+    modalBackdrop.onclick = (e) => {
+      if (e.target === modalBackdrop) closeSettings();
+    };
+
+    // WebSocket (optional for now). When you later send hit events from backend,
+    // handle them here by calling markCupHit(msg.target_id).
+    const ws = new WebSocket("ws://localhost:8000/ws");
+    ws.onopen = () => { wsStateEl.textContent = "WS: connected"; };
+    ws.onclose = () => { wsStateEl.textContent = "WS: disconnected"; };
+    ws.onerror = () => { wsStateEl.textContent = "WS: error"; };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "heartbeat") {
+          hbCountEl.textContent = String(msg.count ?? 0);
+        } else if (msg.type === "hit") {
+          // Later: backend can send {type:"hit", target_id:3}
+          markCupHit(Number(msg.target_id));
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    // Initial render
+    renderCups();
+    setGameState("idle");
+    log("UI loaded");
+  </script>
+</body>
+</html>
