@@ -69,14 +69,17 @@
       padding: 16px;
       box-sizing: border-box;
       display: grid;
-      grid-template-columns: repeat(5, minmax(90px, 1fr));
+      grid-template-columns: repeat(7, minmax(80px, 1fr));
+      grid-auto-rows: min-content;
       gap: 14px;
       align-content: start;
+      justify-items: center;
       overflow: auto;
     }
 
     .cup {
       position: relative;
+      width: 90px;
       border-radius: 14px;
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.06);
@@ -351,10 +354,15 @@
 
     function renderCups() {
       cupsEl.innerHTML = "";
+      const pyramidColumns = [1, 3, 5, 7, 2, 4, 6, 3, 5, 4];
+      const pyramidRows = [1, 1, 1, 1, 2, 2, 2, 3, 3, 4];
+
       for (let i = 0; i < CUP_COUNT; i++) {
         const card = document.createElement("div");
         card.className = "cup " + (cupHit[i] ? "hit" : "lit");
         card.dataset.cupId = String(i + 1);
+        card.style.gridColumn = String(pyramidColumns[i] ?? 1);
+        card.style.gridRow = String(pyramidRows[i] ?? 1);
 
         const img = document.createElement("img");
         img.src = "cup.png";

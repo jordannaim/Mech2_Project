@@ -1,13 +1,17 @@
 import numpy as np
 import cv2
+import json
+import os
 
-cap = cv2.VideoCapture(1,cv2.CAP_DSHOW) # (0, cv2.CAP_V4L2)
+cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 cap.set(cv2.CAP_PROP_CONTRAST, 50)
 
 K3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 K5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+
+SETTINGS_PATH = os.path.join(os.path.dirname(__file__), "ellipse_tuning.json")
 
 # ---- Tunables ----
 CANNY_LO, CANNY_HI = 80, 160
@@ -219,6 +223,65 @@ def biggest_blue_roi(frame_bgr, pad=60, min_area=1500):
     x0, y0, x1, y1 = clamp_roi(x0, y0, x1, y1, w, h)
     return x0, y0, x1, y1, blue_mask
 
+def load_trackbar_settings(path):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return data
+    except (OSError, json.JSONDecodeError):
+        pass
+    return {}
+
+def save_trackbar_settings(path, values):
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(values, f, indent=2, sort_keys=True)
+    except OSError:
+        pass
+
+TRACKBAR_MAX = {
+    "Ring Thick": 20,
+    "Support Thresh x100": 100,
+    "Dilate Iterations": 10,
+    "Canny Low": 255,
+    "Min Major Axis": 250,
+    "Min Minor Axis": 120,
+    "Max Axis": 450,
+    "Min Aspect x100": 100,
+    "Mask Lower": 255,
+    "Fallback Supp x100": 100,
+    "Min Inlier x100": 100,
+    "Strict Inlier x100": 100,
+    "Min Inlier Pts": 300,
+    "Inlier Tol x100": 60,
+    "Rand Fit Trials": 80,
+    "Rand Fit Points": 220,
+    "Min Cnt Pts": 200,
+    "Bridge Iter": 6,
+    "NMS Ctr Dist": 120,
+    "Use Red ROI": 1,
+    "Red Pad": 200,
+    "Red MinArea": 200,
+}
+
+def apply_trackbar_settings(settings):
+    for name, maxv in TRACKBAR_MAX.items():
+        if name not in settings:
+            continue
+        try:
+            val = int(settings[name])
+        except (TypeError, ValueError):
+            continue
+        val = max(0, min(maxv, val))
+        cv2.setTrackbarPos(name, "Tuning", val)
+
+def collect_trackbar_settings():
+    values = {}
+    for name in TRACKBAR_MAX.keys():
+        values[name] = cv2.getTrackbarPos(name, "Tuning")
+    return values
+
 # ---------- UI ----------
 cv2.namedWindow("Tuning", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("Tuning", 520, 720)
@@ -247,6 +310,8 @@ cv2.createTrackbar("NMS Ctr Dist", "Tuning", 28, 120, lambda x: None)
 cv2.createTrackbar("Use Red ROI", "Tuning", 1, 1, lambda x: None)
 cv2.createTrackbar("Red Pad", "Tuning", 70, 200, lambda x: None)
 cv2.createTrackbar("Red MinArea", "Tuning", 15, 200, lambda x: None)  # *100
+
+apply_trackbar_settings(load_trackbar_settings(SETTINGS_PATH))
 
 while True:
     ret, frame = cap.read()
@@ -311,11 +376,22 @@ while True:
         cv2.rectangle(out, (x0, y0), (x1, y1), (255, 0, 255), 2)
 
     # ------- run edges ONLY on ROI -------
-    gray = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    blur = cv2.GaussianBlur(blur, (5, 5), 0)
+    # Run per-channel Canny and combine (B, G, R)
+    b, g, r = cv2.split(roi_frame)
 
-    edges = cv2.Canny(blur, CANNY_LO, CANNY_HI)
+    b_blur = cv2.GaussianBlur(b, (5, 5), 0)
+    b_blur = cv2.GaussianBlur(b_blur, (5, 5), 0)
+    g_blur = cv2.GaussianBlur(g, (5, 5), 0)
+    g_blur = cv2.GaussianBlur(g_blur, (5, 5), 0)
+    r_blur = cv2.GaussianBlur(r, (5, 5), 0)
+    r_blur = cv2.GaussianBlur(r_blur, (5, 5), 0)
+
+    edges_b = cv2.Canny(b_blur, CANNY_LO, CANNY_HI)
+    edges_g = cv2.Canny(g_blur, CANNY_LO, CANNY_HI)
+    edges_r = cv2.Canny(r_blur, CANNY_LO, CANNY_HI)
+
+    edges = cv2.bitwise_or(edges_b, edges_g)
+    edges = cv2.bitwise_or(edges, edges_r)
     edges_stable = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, K3, iterations=1)
     edges_stable = cv2.dilate(edges_stable, K3, iterations=DILATE_ITER)
 
@@ -429,7 +505,9 @@ while True:
     cv2.imshow("RedMask", redmask)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
+        save_trackbar_settings(SETTINGS_PATH, collect_trackbar_settings())
         break
 
 cap.release()
+save_trackbar_settings(SETTINGS_PATH, collect_trackbar_settings())
 cv2.destroyAllWindows()
