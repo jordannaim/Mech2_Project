@@ -2,11 +2,28 @@ import numpy as np
 import cv2
 import json
 import os
+import glob
 
-cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-cap.set(cv2.CAP_PROP_CONTRAST, 50)
+# ---- Use test images instead of camera feed ----
+USE_TEST_IMAGES = False
+
+if USE_TEST_IMAGES:
+    test_image_dir = "test_images"
+    test_images = sorted(glob.glob(os.path.join(test_image_dir, "*.jpg")))
+    if not test_images:
+        print(f"No images found in {test_image_dir}")
+        exit(1)
+    image_index = 0
+    print(f"Loaded {len(test_images)} test images")
+    cap = None
+else:
+    cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+    #cap.set(cv2.CAP_PROP_FPS,15)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cap.set(cv2.CAP_PROP_CONTRAST, 50)
+    test_images = None
+    image_index = 0
 
 K3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 K5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
@@ -102,6 +119,12 @@ def maybe_add_candidate(candidates, points_xy, edges_stable, cx, cy, MA, ma, ang
     aspect = minor_axis / major_axis
     if not (MIN_ASPECT <= aspect <= MAX_ASPECT):
         return
+    
+    # Filter for nearly horizontal major axis (within 25 degrees of 0 or 180)
+    otherAngle = (angle + 90) % 180  # angle of minor axis
+    angle_to_horizontal = min(abs(otherAngle), abs(180 - otherAngle))
+    if angle_to_horizontal > 15:
+        return
 
     sc = support_score(edges_stable, cx, cy, MA, ma, angle, thick=ring_thick, n=SAMPLE_N)
     inlier = ellipse_inlier_score(points_xy, cx, cy, MA, ma, angle, tol=INLIER_TOL)
@@ -156,10 +179,11 @@ def biggest_red_roi(frame_bgr, pad=60, min_area=1500):
     h, w = frame_bgr.shape[:2]
     hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
 
-    # red wraps hue, so use two bands
-    lower1 = np.array([0, 80, 50], dtype=np.uint8)
-    upper1 = np.array([10, 255, 255], dtype=np.uint8)
-    lower2 = np.array([170, 80, 50], dtype=np.uint8)
+    # red wraps hue, so use two bands - tightened to exclude skin tones
+    # Solo cups are much more saturated and darker than skin
+    lower1 = np.array([0, 150, 80], dtype=np.uint8)
+    upper1 = np.array([8, 255, 255], dtype=np.uint8)
+    lower2 = np.array([172, 150, 80], dtype=np.uint8)
     upper2 = np.array([180, 255, 255], dtype=np.uint8)
 
     m1 = cv2.inRange(hsv, lower1, upper1)
@@ -170,34 +194,45 @@ def biggest_red_roi(frame_bgr, pad=60, min_area=1500):
     ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
     red = cv2.morphologyEx(red, cv2.MORPH_OPEN, ker, iterations=1)
     red = cv2.morphologyEx(red, cv2.MORPH_CLOSE, ker, iterations=2)
+    
+    # Merge nearby blobs by dilating before finding contours
+    merge_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (21, 21))
+    red_merged = cv2.dilate(red, merge_kernel, iterations=2)
 
-    cnts, _ = cv2.findContours(red, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts, _ = cv2.findContours(red_merged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         return 0, 0, w, h, red
 
-    cnt = max(cnts, key=cv2.contourArea)
-    if cv2.contourArea(cnt) < min_area:
+    # Filter by minimum area and collect valid contours
+    valid_cnts = [c for c in cnts if cv2.contourArea(c) >= min_area]
+    if not valid_cnts:
         return 0, 0, w, h, red
 
-    x, y, rw, rh = cv2.boundingRect(cnt)
+    # Combine all valid blobs into a single bounding box
+    all_points = np.vstack(valid_cnts)
+    x, y, rw, rh = cv2.boundingRect(all_points)
+    
+    # Shift ROI center upward (cups' rims are above the red blob)
+    vertical_shift = int(rh * 0.3)  # Shift up by 30% of blob height
+    
     x0 = x - pad
-    y0 = y - pad
+    y0 = y - pad - vertical_shift
     x1 = x + rw + pad
-    y1 = y + rh + pad
+    y1 = y + rh + pad - vertical_shift
     x0, y0, x1, y1 = clamp_roi(x0, y0, x1, y1, w, h)
     return x0, y0, x1, y1, red
 
 
 def biggest_blue_roi(frame_bgr, pad=60, min_area=1500):
     """
-    Returns (x0,y0,x1,y1, red_mask) for the biggest red blob.
+    Returns (x0,y0,x1,y1, blue_mask) for the biggest blue blob.
     If nothing solid found, returns full-frame ROI.
     """
     h, w = frame_bgr.shape[:2]
     hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
 
-    # Blue range (primary band)
-    lower_blue = np.array([100, 100, 50], dtype=np.uint8)
+    # Blue range (primary band) - tightened for better isolation
+    lower_blue = np.array([100, 150, 80], dtype=np.uint8)
     upper_blue = np.array([130, 255, 255], dtype=np.uint8)
 
     blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
@@ -206,20 +241,31 @@ def biggest_blue_roi(frame_bgr, pad=60, min_area=1500):
     ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
     blue_mask = cv2.morphologyEx(blue_mask, cv2.MORPH_OPEN, ker, iterations=1)
     blue_mask = cv2.morphologyEx(blue_mask, cv2.MORPH_CLOSE, ker, iterations=2)
+    
+    # Merge nearby blobs by dilating before finding contours
+    merge_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (21, 21))
+    blue_merged = cv2.dilate(blue_mask, merge_kernel, iterations=2)
 
-    cnts, _ = cv2.findContours(blue_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts, _ = cv2.findContours(blue_merged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         return 0, 0, w, h, blue_mask
 
-    cnt = max(cnts, key=cv2.contourArea)
-    if cv2.contourArea(cnt) < min_area:
+    # Filter by minimum area and collect valid contours
+    valid_cnts = [c for c in cnts if cv2.contourArea(c) >= min_area]
+    if not valid_cnts:
         return 0, 0, w, h, blue_mask
 
-    x, y, rw, rh = cv2.boundingRect(cnt)
+    # Combine all valid blobs into a single bounding box
+    all_points = np.vstack(valid_cnts)
+    x, y, rw, rh = cv2.boundingRect(all_points)
+    
+    # Shift ROI center upward (cups' rims are above the blue blob)
+    vertical_shift = int(rh * 0.3)  # Shift up by 30% of blob height
+    
     x0 = x - pad
-    y0 = y - pad
+    y0 = y - pad - vertical_shift
     x1 = x + rw + pad
-    y1 = y + rh + pad
+    y1 = y + rh + pad - vertical_shift
     x0, y0, x1, y1 = clamp_roi(x0, y0, x1, y1, w, h)
     return x0, y0, x1, y1, blue_mask
 
@@ -314,9 +360,16 @@ cv2.createTrackbar("Red MinArea", "Tuning", 15, 200, lambda x: None)  # *100
 apply_trackbar_settings(load_trackbar_settings(SETTINGS_PATH))
 
 while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+    if USE_TEST_IMAGES:
+        frame = cv2.imread(test_images[image_index])
+        if frame is None:
+            print(f"Failed to load image: {test_images[image_index]}")
+            break
+        ret = True
+    else:
+        ret, frame = cap.read()
+        if not ret:
+            break
 
     H, W = frame.shape[:2]
 
@@ -376,22 +429,11 @@ while True:
         cv2.rectangle(out, (x0, y0), (x1, y1), (255, 0, 255), 2)
 
     # ------- run edges ONLY on ROI -------
-    # Run per-channel Canny and combine (B, G, R)
-    b, g, r = cv2.split(roi_frame)
+    gray = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    blur = cv2.GaussianBlur(blur, (5, 5), 0)
 
-    b_blur = cv2.GaussianBlur(b, (5, 5), 0)
-    b_blur = cv2.GaussianBlur(b_blur, (5, 5), 0)
-    g_blur = cv2.GaussianBlur(g, (5, 5), 0)
-    g_blur = cv2.GaussianBlur(g_blur, (5, 5), 0)
-    r_blur = cv2.GaussianBlur(r, (5, 5), 0)
-    r_blur = cv2.GaussianBlur(r_blur, (5, 5), 0)
-
-    edges_b = cv2.Canny(b_blur, CANNY_LO, CANNY_HI)
-    edges_g = cv2.Canny(g_blur, CANNY_LO, CANNY_HI)
-    edges_r = cv2.Canny(r_blur, CANNY_LO, CANNY_HI)
-
-    edges = cv2.bitwise_or(edges_b, edges_g)
-    edges = cv2.bitwise_or(edges, edges_r)
+    edges = cv2.Canny(blur, CANNY_LO, CANNY_HI)
     edges_stable = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, K3, iterations=1)
     edges_stable = cv2.dilate(edges_stable, K3, iterations=DILATE_ITER)
 
@@ -483,6 +525,9 @@ while True:
 
     kept = nms_ellipses(candidates)
 
+    # Create visualization for ROI edges with ellipses overlay
+    edges_vis = cv2.cvtColor(edges_stable, cv2.COLOR_GRAY2BGR)
+
     # Draw ellipses back in full-frame coords
     for e in kept:
         cx_roi, cy_roi = e["cx"], e["cy"]
@@ -491,23 +536,34 @@ while True:
 
         MA, ma, angle = e["MA"], e["ma"], e["angle"]
 
+        # Draw on full frame
         cv2.ellipse(out, ((cx, cy), (MA, ma), angle), (0, 255, 0), 2)
         cv2.circle(out, (int(cx), int(cy)), 3, (0, 0, 255), -1)
         cv2.putText(out, f's:{e["score"]:.2f} i:{e["inlier"]:.2f}', (int(cx) + 6, int(cy) - 6),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+        
+        # Draw on ROI edges visualization (in ROI coordinates)
+        cv2.ellipse(edges_vis, ((cx_roi, cy_roi), (MA, ma), angle), (0, 255, 0), 2)
+        cv2.circle(edges_vis, (int(cx_roi), int(cy_roi)), 3, (0, 0, 255), -1)
 
     # Display: show ROI edge maps but also a full-frame overlay
     cv2.imshow("ellipses", out)
+    cv2.imshow("edges_with_fits", edges_vis)
     cv2.imshow("edges_canny_roi", edges)
     cv2.imshow("edges_stable_roi", edges_stable)
     cv2.imshow("edges_fit_roi", edges_fit)
     cv2.imshow("Mask", mask)
     cv2.imshow("RedMask", redmask)
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
         save_trackbar_settings(SETTINGS_PATH, collect_trackbar_settings())
         break
+    elif key == ord(' ') and USE_TEST_IMAGES:
+        image_index = (image_index + 1) % len(test_images)
+        print(f"Image {image_index}/{len(test_images)-1}: {test_images[image_index]}")
 
-cap.release()
+if cap is not None:
+    cap.release()
 save_trackbar_settings(SETTINGS_PATH, collect_trackbar_settings())
 cv2.destroyAllWindows()
