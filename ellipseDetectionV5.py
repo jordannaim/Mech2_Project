@@ -5,7 +5,7 @@ import os
 import glob
 
 # ---- Use test images instead of camera feed ----
-USE_TEST_IMAGES = False
+USE_TEST_IMAGES = True
 
 if USE_TEST_IMAGES:
     test_image_dir = "test_images"
@@ -61,6 +61,11 @@ BRIDGE_ITER = 1
 # NMS
 NMS_CENTER_DIST = 28
 NMS_AXIS_DIST = 12
+
+# Pyramid detection
+PYRAMID_ROW_TOLERANCE = 25  # pixels: how close ellipse centers must be to group into a row
+PYRAMID_MIN_ROWS = 2  # minimum rows to form a valid pyramid
+PYRAMID_SIZE_TOLERANCE = 0.15  # relative tolerance for ellipse sizes in same row
 
 def ellipse_points(cx, cy, a, b, ang_deg, n=120):
     t = np.linspace(0, 2*np.pi, n, endpoint=False)
@@ -159,40 +164,7 @@ def partial_arc_score(edges, cx, cy, MA, ma, angle_deg, tol=0.18):
     # Combined: weight coverage heavily but reward continuity
     return 0.7 * coverage_score + 0.3 * gap_score
 
-def check_white_infill(frame, cx, cy, MA, ma, angle, threshold=180):
-    """
-    Check if the interior of an ellipse has mostly white/bright pixels.
-    Returns a score from 0 to 1 indicating how "white" the interior is.
-    A loose constraint: returns True if average brightness > threshold.
-    """
-    h, w = frame.shape[:2]
-    a = MA / 2.0
-    b = ma / 2.0
-    
-    # Create an ellipse mask
-    mask = np.zeros((h, w), dtype=np.uint8)
-    cv2.ellipse(mask, ((int(cx), int(cy)), (int(MA), int(ma)), angle), 255, -1)
-    
-    # Get the interior pixels
-    interior = frame[mask > 0]
-    if len(interior) == 0:
-        return 0.5  # Default to neutral if no pixels
-    
-    # Convert to grayscale if color image
-    if len(interior.shape) == 2:
-        gray = interior
-    else:
-        # For BGR, compute mean brightness across channels
-        gray = np.mean(interior, axis=1).astype(np.uint8)
-    
-    # Calculate average brightness
-    avg_brightness = np.mean(gray)
-    
-    # Return score: how close to white (255)
-    white_score = avg_brightness / 255.0
-    return white_score
-
-def maybe_add_candidate(candidates, points_xy, edges_stable, cx, cy, MA, ma, angle, ring_thick, support_thresh, frame_for_infill=None):
+def maybe_add_candidate(candidates, points_xy, edges_stable, cx, cy, MA, ma, angle, ring_thick, support_thresh):
     major_axis = max(MA, ma)
     minor_axis = min(MA, ma)
 
@@ -215,11 +187,6 @@ def maybe_add_candidate(candidates, points_xy, edges_stable, cx, cy, MA, ma, ang
     
     # For potentially partial ellipses (low support), use arc continuity scoring
     arc_score = partial_arc_score(edges_stable, cx, cy, MA, ma, angle)
-    
-    # Check white infill (loose constraint)
-    white_score = 0.5  # default neutral
-    if frame_for_infill is not None:
-        white_score = check_white_infill(frame_for_infill, cx, cy, MA, ma, angle, threshold=180)
 
     keep = (
         (sc >= support_thresh)
@@ -230,12 +197,6 @@ def maybe_add_candidate(candidates, points_xy, edges_stable, cx, cy, MA, ma, ang
         # NEW: Accept partial ellipses with good arc continuity (e.g., 90% complete with gap)
         or (arc_score >= 0.55)
     )
-    
-    # Apply white infill filter: if we have frame data, require reasonable whiteness
-    # This is a loose constraint - just require it's not very dark (< 0.3 = very dark)
-    if keep and frame_for_infill is not None and white_score < 0.7:
-        return
-    
     if not keep:
         return
 
@@ -248,7 +209,6 @@ def maybe_add_candidate(candidates, points_xy, edges_stable, cx, cy, MA, ma, ang
         "score": sc,
         "inlier": inlier,
         "arc_score": arc_score,
-        "white_score": white_score,
         "rank": 0.50 * sc + 0.35 * inlier + 0.15 * arc_score,
     })
 
@@ -265,6 +225,423 @@ def nms_ellipses(ells):
         if keep:
             kept.append(e)
     return kept
+
+def find_anchor_cup(ellipses):
+    """
+    Find the anchor cup (single cup at front = highest Y value = closest to viewer).
+    In image coords, Y increases downward, so front cup appears at bottom of frame.
+    Returns the ellipse that's most likely to be the front cup, or None.
+    """
+    if not ellipses:
+        return None
+    
+    # The anchor is the cup closest to viewer = HIGHEST Y value (bottom of frame)
+    return max(ellipses, key=lambda e: e["cy"])
+
+def generate_pyramid_positions(anchor, num_rows=4):
+    """
+    Generate expected cup positions for a full pyramid based on anchor ellipse.
+    The anchor ellipse shape (aspect ratio, rotation) is preserved in extrapolation.
+    Pyramid goes AWAY from viewer (Y decreases) with perspective scaling.
+    Anchor at bottom (high Y), pyramid extends upward (lower Y).
+    """
+    if anchor is None:
+        return []
+    
+    anchor_x = anchor["cx"]
+    anchor_y = anchor["cy"]
+    anchor_MA = anchor["MA"]
+    anchor_ma = anchor["ma"]
+    anchor_angle = anchor["angle"]
+    
+    # Use actual major and minor axis dimensions for spacing
+    # Preserves aspect ratio of cup ellipses
+    spacing_x = anchor_MA * 0.95  # Horizontal spacing based on major axis
+    spacing_y = anchor_ma * 0.85  # Vertical spacing based on minor axis
+    
+    positions = []
+    
+    # Row 0: Anchor cup (1 cup at front/bottom)
+    positions.append({
+        "cx": anchor_x,
+        "cy": anchor_y,
+        "MA": anchor_MA,
+        "ma": anchor_ma,
+        "angle": anchor_angle,
+        "row": 0,
+        "col": 0,
+    })
+    
+    # Generate subsequent rows with perspective scaling
+    # Cups farther away appear smaller (perspective foreshortening)
+    for row_idx in range(1, num_rows):
+        row_count = row_idx + 1  # Row 1 has 2 cups, row 2 has 3, etc.
+        # Go UPWARD (Y decreases) as we go away from viewer
+        row_y = anchor_y - row_idx * spacing_y
+        
+        # Perspective scaling: cups farther away are smaller
+        # Typical perspective ratio: ~0.8-0.9 per row
+        scale_factor = 0.85 ** row_idx
+        
+        scaled_MA = anchor_MA * scale_factor
+        scaled_ma = anchor_ma * scale_factor
+        
+        # Center the row horizontally around anchor_x
+        row_width = (row_count - 1) * spacing_x * scale_factor
+        start_x = anchor_x - row_width / 2.0
+        
+        for cup_idx in range(row_count):
+            cup_x = start_x + cup_idx * spacing_x * scale_factor
+            
+            positions.append({
+                "cx": cup_x,
+                "cy": row_y,
+                "MA": scaled_MA,
+                "ma": scaled_ma,
+                "angle": anchor_angle,  # Same rotation as anchor
+                "row": row_idx,
+                "col": cup_idx,
+            })
+    
+    return positions
+
+def match_cups_to_positions(ellipses, predicted_positions, tolerance=30):
+    """
+    Match detected ellipses to predicted pyramid positions.
+    
+    Args:
+        ellipses: list of detected ellipse dicts
+        predicted_positions: list of predicted position dicts from generate_pyramid_positions
+        tolerance: max distance to match
+    
+    Returns:
+        matched: list of matched ellipses with their predicted positions
+        unmatched_positions: list of unmatched predicted positions
+        unmatched_ellipses: list of detected ellipses that don't fit pyramid
+    """
+    matched = []
+    unmatched_positions = list(predicted_positions)
+    unmatched_ellipses = list(ellipses)
+    
+    for pred_pos in predicted_positions:
+        best_match = None
+        best_dist = float('inf')
+        best_ellipse = None
+        
+        # Find closest ellipse to this predicted position
+        for ellipse in unmatched_ellipses:
+            dist = np.hypot(ellipse["cx"] - pred_pos["cx"], ellipse["cy"] - pred_pos["cy"])
+            if dist < tolerance and dist < best_dist:
+                best_match = pred_pos
+                best_dist = dist
+                best_ellipse = ellipse
+        
+        if best_ellipse:
+            matched.append({
+                "predicted": best_match,
+                "detected": best_ellipse,
+                "distance": best_dist,
+            })
+            unmatched_ellipses.remove(best_ellipse)
+            unmatched_positions.remove(pred_pos)
+    
+    return matched, unmatched_positions, unmatched_ellipses
+
+def check_white_center(frame, cx, cy, radius=10):
+    """
+    Check if the center region is predominantly white (cup interior).
+    Returns True if white, False if red/other color.
+    """
+    h, w = frame.shape[:2]
+    x0 = max(0, int(cx - radius))
+    x1 = min(w, int(cx + radius))
+    y0 = max(0, int(cy - radius))
+    y1 = min(h, int(cy + radius))
+    
+    if x1 <= x0 or y1 <= y0:
+        return False
+    
+    region = frame[y0:y1, x0:x1]
+    
+    # Convert to HSV
+    hsv_region = cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
+    
+    # Check for white: low saturation, high value
+    lower_white = np.array([0, 0, 180], dtype=np.uint8)
+    upper_white = np.array([180, 60, 255], dtype=np.uint8)
+    white_mask = cv2.inRange(hsv_region, lower_white, upper_white)
+    
+    # Check for red (should be absent)
+    lower_red1 = np.array([0, 100, 80], dtype=np.uint8)
+    upper_red1 = np.array([10, 255, 255], dtype=np.uint8)
+    lower_red2 = np.array([170, 100, 80], dtype=np.uint8)
+    upper_red2 = np.array([180, 255, 255], dtype=np.uint8)
+    
+    red_mask1 = cv2.inRange(hsv_region, lower_red1, upper_red1)
+    red_mask2 = cv2.inRange(hsv_region, lower_red2, upper_red2)
+    red_mask = cv2.bitwise_or(red_mask1, red_mask2)
+    
+    white_ratio = np.count_nonzero(white_mask) / float(white_mask.size)
+    red_ratio = np.count_nonzero(red_mask) / float(red_mask.size)
+    
+    # Accept if mostly white and not much red
+    return white_ratio > 0.4 and red_ratio < 0.2
+
+def search_for_cup_at_position(edges_stable, frame, pred_pos, search_radius=40):
+    """
+    Search for an ellipse at a specific predicted position.
+    
+    Args:
+        edges_stable: edge image
+        frame: original frame
+        pred_pos: dict with {cx, cy, MA, ma, angle} of predicted position
+        search_radius: how far to search around predicted position
+    
+    Returns:
+        ellipse dict if found and validated, None otherwise.
+    """
+    h, w = edges_stable.shape
+    pred_x = pred_pos["cx"]
+    pred_y = pred_pos["cy"]
+    pred_size = np.sqrt(pred_pos["MA"] * pred_pos["ma"])
+    
+    # Extract region around predicted position
+    x0 = max(0, int(pred_x - search_radius))
+    x1 = min(w, int(pred_x + search_radius))
+    y0 = max(0, int(pred_y - search_radius))
+    y1 = min(h, int(pred_y + search_radius))
+    
+    if x1 <= x0 + 10 or y1 <= y0 + 10:
+        return None
+    
+    region_edges = edges_stable[y0:y1, x0:x1]
+    
+    # Find contours in this region
+    cnts, _ = cv2.findContours(region_edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+    
+    best_ellipse = None
+    best_score = 0
+    
+    for cnt in cnts:
+        if len(cnt) < 5:
+            continue
+        
+        try:
+            ((ec_x, ec_y), (ec_MA, ec_ma), ec_angle) = cv2.fitEllipse(cnt)
+        except cv2.error:
+            continue
+        
+        # Convert to global coordinates
+        global_cx = ec_x + x0
+        global_cy = ec_y + y0
+        
+        # Check if this ellipse is close to predicted position
+        dist = np.hypot(global_cx - pred_x, global_cy - pred_y)
+        if dist > search_radius * 0.7:
+            continue
+        
+        # Check size similarity
+        ellipse_size = np.sqrt(ec_MA * ec_ma)
+        size_ratio = min(ellipse_size, pred_size) / max(ellipse_size, pred_size)
+        if size_ratio < 0.7:
+            continue
+        
+        # Check aspect ratio (should be elliptical)
+        aspect = min(ec_MA, ec_ma) / max(ec_MA, ec_ma)
+        if aspect < 0.15 or aspect > 1.0:
+            continue
+        
+        # Validate white center
+        if not check_white_center(frame, global_cx, global_cy, radius=int(pred_size * 0.3)):
+            continue
+        
+        # Score based on proximity and size match
+        score = size_ratio * (1.0 - dist / search_radius)
+        
+        if score > best_score:
+            best_score = score
+            best_ellipse = {
+                "cx": global_cx,
+                "cy": global_cy,
+                "MA": ec_MA,
+                "ma": ec_ma,
+                "angle": ec_angle,
+                "predicted": True,
+                "confidence": score,
+            }
+    
+    return best_ellipse if best_score > 0.5 else None
+
+def cluster_ellipses_by_row(ellipses, row_tolerance=25):
+    """
+    Group ellipses into horizontal rows based on Y position.
+    Returns list of rows, where each row is a list of ellipses sorted by X position.
+    """
+    if not ellipses:
+        return []
+    
+    # Sort by Y coordinate (vertical position)
+    sorted_ellipses = sorted(ellipses, key=lambda e: e["cy"])
+    
+    rows = []
+    current_row = [sorted_ellipses[0]]
+    
+    for e in sorted_ellipses[1:]:
+        # Check if this ellipse belongs to the current row
+        if abs(e["cy"] - current_row[0]["cy"]) <= row_tolerance:
+            current_row.append(e)
+        else:
+            # Start a new row
+            rows.append(sorted(current_row, key=lambda x: x["cx"]))
+            current_row = [e]
+    
+    # Don't forget the last row
+    if current_row:
+        rows.append(sorted(current_row, key=lambda x: x["cx"]))
+    
+    return rows
+
+def validate_pyramid_structure(rows):
+    """
+    Validate if the rows form a reasonable pyramid:
+    - Each row should have <= previous row (decreasing count)
+    - Cup sizes should be similar within acceptable tolerance
+    - Should have at least PYRAMID_MIN_ROWS rows
+    Returns (is_valid, structure_score)
+    """
+    if len(rows) < PYRAMID_MIN_ROWS:
+        return False, 0.0
+    
+    # Check size consistency within each row
+    size_consistency = []
+    for row in rows:
+        if len(row) == 1:
+            size_consistency.append(1.0)
+        else:
+            sizes = [np.sqrt(e["MA"] * e["ma"]) for e in row]
+            mean_size = np.mean(sizes)
+            size_std = np.std(sizes) / mean_size
+            consistency = 1.0 - np.clip(size_std, 0, PYRAMID_SIZE_TOLERANCE) / PYRAMID_SIZE_TOLERANCE
+            size_consistency.append(consistency)
+    
+    # Check if row sizes INCREASE as we go away (inverted pyramid - beer pong style)
+    # Viewer sees 1 cup at bottom (closest), then 2, 3, 4 as you go away
+    row_counts = [len(row) for row in rows]
+    is_increasing = True
+    for i in range(len(row_counts) - 1):
+        if row_counts[i + 1] < row_counts[i]:
+            is_increasing = False
+            break
+    
+    if not is_increasing:
+        return False, 0.0, []
+    
+    # Compute structure score
+    consistency_score = np.mean(size_consistency)
+    
+    # Expected pattern for standard beer pong: 1, 2, 3, 4 from closest to farthest
+    expected_counts = list(range(1, len(rows) + 1))
+    
+    count_diff = sum(abs(row_counts[i] - expected_counts[i]) for i in range(len(rows)))
+    count_score = 1.0 - (count_diff / sum(expected_counts))
+    count_score = max(0.0, count_score)
+    
+    structure_score = 0.6 * consistency_score + 0.4 * count_score
+    
+    return is_increasing, structure_score, expected_counts
+
+def get_pyramid_structure_str(rows):
+    """Return string description of pyramid structure."""
+    if not rows:
+        return "No pyramid"
+    counts = [str(len(row)) for row in rows]
+    return " -> ".join(counts) + " (closest to farthest)"
+
+def predict_missing_cups(rows, expected_counts, min_integrity=0.65):
+    """
+    Predict where missing cups should be based on pyramid structure.
+    Uses each cup's own major/minor axis dimensions for spacing.
+    
+    Args:
+        rows: List of detected cup rows (each row is list of ellipses)
+        expected_counts: Expected cup counts per row [1, 2, 3, 4, ...]
+        min_integrity: Min % of expected cups needed to make predictions (0.65 = 65%)
+    
+    Returns:
+        List of predicted cup positions: [{"x": cx, "y": cy, "confidence": score}, ...]
+    """
+    if not rows or not expected_counts:
+        return []
+    
+    # Calculate pyramid integrity
+    actual_counts = [len(row) for row in rows]
+    total_expected = sum(expected_counts)
+    total_actual = sum(actual_counts)
+    integrity = total_actual / float(total_expected)
+    
+    if integrity < min_integrity:
+        # Pyramid too degraded, don't make predictions
+        return []
+    
+    predictions = []
+    
+    for row_idx, row in enumerate(rows):
+        if row_idx >= len(expected_counts):
+            break
+        
+        expected_in_row = expected_counts[row_idx]
+        actual_in_row = len(row)
+        missing = expected_in_row - actual_in_row
+        
+        if missing <= 0:
+            continue  # No missing cups in this row
+        
+        # Get row Y position (average of detected cups in row)
+        row_y = np.mean([e["cy"] for e in row])
+        
+        # Get row X positions (horizontal spacing)
+        row_xs = sorted([e["cx"] for e in row])
+        
+        # Estimate missing cup positions by interpolation
+        if len(row_xs) == 0:
+            continue
+        
+        # Calculate spacing from detected cup dimensions directly
+        # Use horizontal (major-ish) axis with tight spacing multiplier
+        if len(row) > 0:
+            # Use each cup's dimensions - average the spacing multipliers
+            spacings = [np.sqrt(e["MA"] * e["ma"]) * 0.95 for e in row]
+            spacing = np.mean(spacings) if spacings else 50
+        else:
+            spacing = 50
+        
+        # Find gaps in the detected positions
+        # Generate expected positions and find which ones are missing
+        first_x = row_xs[0]
+        for i in range(expected_in_row):
+            expected_x = first_x + i * spacing
+            
+            # Check if a cup exists near this position
+            found = False
+            for detected in row:
+                if abs(detected["cx"] - expected_x) < spacing * 0.4:
+                    found = True
+                    break
+            
+            if not found:
+                # This position is missing a cup
+                # Confidence decreases with more missing cups
+                confidence = 1.0 - (missing / float(expected_in_row)) * 0.3
+                confidence = np.clip(confidence, 0.5, 0.95)
+                
+                predictions.append({
+                    "x": expected_x,
+                    "y": row_y,
+                    "confidence": confidence,
+                    "row": row_idx,
+                })
+    
+    return predictions
 
 def clamp_roi(x0, y0, x1, y1, w, h):
     x0 = int(max(0, min(w - 1, x0)))
@@ -413,7 +790,8 @@ TRACKBAR_MAX = {
     "Use Red ROI": 1,
     "Red Pad": 200,
     "Red MinArea": 200,
-}
+    "Pyr Row Tol": 50,
+    "Pyr Size Tol x100": 15,    "Pyr Min Integrity x100": 65,}
 
 def apply_trackbar_settings(settings):
     for name, maxv in TRACKBAR_MAX.items():
@@ -460,6 +838,11 @@ cv2.createTrackbar("NMS Ctr Dist", "Tuning", 28, 120, lambda x: None)
 cv2.createTrackbar("Use Red ROI", "Tuning", 1, 1, lambda x: None)
 cv2.createTrackbar("Red Pad", "Tuning", 70, 200, lambda x: None)
 cv2.createTrackbar("Red MinArea", "Tuning", 15, 200, lambda x: None)  # *100
+
+# Pyramid detection
+cv2.createTrackbar("Pyr Row Tol", "Tuning", 25, 50, lambda x: None)
+cv2.createTrackbar("Pyr Size Tol x100", "Tuning", 15, 50, lambda x: None)
+cv2.createTrackbar("Pyr Min Integrity x100", "Tuning", 65, 100, lambda x: None)
 
 apply_trackbar_settings(load_trackbar_settings(SETTINGS_PATH))
 
@@ -521,6 +904,11 @@ while True:
     MIN_CONTOUR_POINTS = max(5, cv2.getTrackbarPos("Min Cnt Pts", "Tuning"))
     BRIDGE_ITER = cv2.getTrackbarPos("Bridge Iter", "Tuning")
     NMS_CENTER_DIST = max(1, cv2.getTrackbarPos("NMS Ctr Dist", "Tuning"))
+    
+    # Pyramid parameters from trackbars
+    PYRAMID_ROW_TOLERANCE = cv2.getTrackbarPos("Pyr Row Tol", "Tuning")
+    PYRAMID_SIZE_TOLERANCE = cv2.getTrackbarPos("Pyr Size Tol x100", "Tuning") / 100.0
+    PYRAMID_MIN_INTEGRITY = cv2.getTrackbarPos("Pyr Min Integrity x100", "Tuning") / 100.0
 
     if CANNY_LO == 0:
         CANNY_LO = 1
@@ -578,7 +966,6 @@ while True:
             angle,
             RING_THICK,
             SUPPORT_THRESH,
-            frame_for_infill=roi_frame,
         )
 
     # Path B: component fits + random subset fits (handles merged overlapping rims)
@@ -606,7 +993,6 @@ while True:
             angle,
             RING_THICK,
             SUPPORT_THRESH,
-            frame_for_infill=roi_frame,
         )
 
         if len(pts_xy) >= RANDOM_FIT_POINTS:
@@ -630,7 +1016,6 @@ while True:
                     ang2,
                     RING_THICK,
                     SUPPORT_THRESH,
-                    frame_for_infill=roi_frame,
                 )
         
         # NEW: Extra random trials for partial arc detection
@@ -658,15 +1043,44 @@ while True:
                     ang2,
                     RING_THICK,
                     SUPPORT_THRESH,
-                    frame_for_infill=roi_frame,
                 )
 
     kept = nms_ellipses(candidates)
+    
+    # NEW APPROACH: Anchor-based pyramid detection
+    # 1. Find the anchor cup (front single cup)
+    anchor = find_anchor_cup(kept)
+    
+    # 2. Generate expected pyramid positions based on anchor
+    predicted_positions = []
+    matched_cups = []
+    unmatched_positions = []
+    found_cups = []
+    
+    if anchor:
+        predicted_positions = generate_pyramid_positions(anchor, num_rows=4)
+        
+        # 3. Match detected cups to predicted positions
+        matched_cups, unmatched_positions, unmatched_ellipses = match_cups_to_positions(
+            kept, predicted_positions, tolerance=40
+        )
+        
+        # 4. Search for cups at unmatched positions (validate with white center check)
+        for pred_pos in unmatched_positions:
+            # Search in edges for cup at this position
+            found = search_for_cup_at_position(
+                edges_stable, 
+                roi_frame, 
+                pred_pos, 
+                search_radius=int(np.sqrt(pred_pos["MA"] * pred_pos["ma"]) * 0.8)
+            )
+            if found:
+                found_cups.append(found)
 
     # Create visualization for ROI edges with ellipses overlay
     edges_vis = cv2.cvtColor(edges_stable, cv2.COLOR_GRAY2BGR)
 
-    # Draw ellipses back in full-frame coords
+    # Draw detected ellipses (green)
     for e in kept:
         cx_roi, cy_roi = e["cx"], e["cy"]
         cx = cx_roi + x0
@@ -678,13 +1092,64 @@ while True:
         cv2.ellipse(out, ((cx, cy), (MA, ma), angle), (0, 255, 0), 2)
         cv2.circle(out, (int(cx), int(cy)), 3, (0, 0, 255), -1)
         arc_str = f' a:{e.get("arc_score", 0):.2f}' if "arc_score" in e else ''
-        white_str = f' w:{e.get("white_score", 0.5):.2f}' if "white_score" in e else ''
-        cv2.putText(out, f's:{e["score"]:.2f} i:{e["inlier"]:.2f}{arc_str}{white_str}', (int(cx) + 6, int(cy) - 6),
+        cv2.putText(out, f's:{e["score"]:.2f} i:{e["inlier"]:.2f}{arc_str}', (int(cx) + 6, int(cy) - 6),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
         
         # Draw on ROI edges visualization (in ROI coordinates)
         cv2.ellipse(edges_vis, ((cx_roi, cy_roi), (MA, ma), angle), (0, 255, 0), 2)
         cv2.circle(edges_vis, (int(cx_roi), int(cy_roi)), 3, (0, 0, 255), -1)
+    
+    # Draw anchor cup with special marking (yellow ellipse)
+    if anchor:
+        anchor_x = int(anchor["cx"]) + x0
+        anchor_y = int(anchor["cy"]) + y0
+        cv2.ellipse(out, ((anchor_x, anchor_y), (int(anchor["MA"]), int(anchor["ma"])), anchor["angle"]), (0, 255, 255), 3)
+        cv2.putText(out, "ANCHOR", (anchor_x - 25, anchor_y - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+    
+    # Draw predicted pyramid positions (cyan ellipses showing expected cups)
+    for pred_pos in predicted_positions:
+        pred_x = int(pred_pos["cx"]) + x0
+        pred_y = int(pred_pos["cy"]) + y0
+        pred_MA = int(pred_pos["MA"])
+        pred_ma = int(pred_pos["ma"])
+        pred_angle = pred_pos["angle"]
+        
+        # Check if this position is matched
+        is_matched = any(match["predicted"]["cx"] == pred_pos["cx"] and 
+                        match["predicted"]["cy"] == pred_pos["cy"] 
+                        for match in matched_cups)
+        
+        if is_matched:
+            # Already has a detected cup - draw small green marker
+            cv2.circle(out, (pred_x, pred_y), 4, (0, 255, 0), -1)
+        else:
+            # Missing cup position - draw cyan ellipse outline
+            cv2.ellipse(out, ((pred_x, pred_y), (pred_MA, pred_ma), pred_angle), (255, 255, 0), 1)
+            cv2.circle(out, (pred_x, pred_y), 3, (255, 255, 0), -1)
+    
+    # Draw found cups (magenta - cups found by search at predicted positions)
+    for found in found_cups:
+        fx = int(found["cx"]) + x0
+        fy = int(found["cy"]) + y0
+        fMA = found["MA"]
+        fma = found["ma"]
+        fangle = found["angle"]
+        conf = found.get("confidence", 0)
+        
+        # Draw with magenta color
+        cv2.ellipse(out, ((fx, fy), (fMA, fma), fangle), (255, 0, 255), 2)
+        cv2.circle(out, (fx, fy), 3, (255, 0, 255), -1)
+        cv2.putText(out, f'FOUND:{conf:.2f}', (fx + 6, fy - 6),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 1, cv2.LINE_AA)
+    
+    # Display pyramid info
+    if anchor and predicted_positions:
+        total_expected = len(predicted_positions)
+        total_detected = len(matched_cups) + len(found_cups)
+        info_str = f"Pyramid: {total_detected}/{total_expected} cups | Found: {len(found_cups)} via search"
+        cv2.putText(out, info_str, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+    else:
+        cv2.putText(out, "No anchor cup detected", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
     # Display: show ROI edge maps but also a full-frame overlay
     cv2.imshow("ellipses", out)
