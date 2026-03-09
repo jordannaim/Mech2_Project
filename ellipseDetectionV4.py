@@ -4,11 +4,48 @@ import json
 import os
 import glob
 
+
+def configure_max_resolution(cap):
+    """
+    Prefer highest stable capture mode, prioritizing 1080p MJPG.
+    Returns (width, height, fps, pixel_format).
+    """
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+    cap.set(cv2.CAP_PROP_FPS, 30)
+
+    preferred = [
+        (1920, 1080),
+        (1600, 900),
+        (1280, 720),
+        (1024, 768),
+        (800, 600),
+        (640, 480),
+    ]
+
+    chosen_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    chosen_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    for w, h in preferred:
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+        for _ in range(3):
+            cap.read()
+        got_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        got_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if got_w == w and got_h == h:
+            chosen_w, chosen_h = got_w, got_h
+            break
+
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    fourcc_int = int(cap.get(cv2.CAP_PROP_FOURCC))
+    fourcc = "".join(chr((fourcc_int >> (8 * i)) & 0xFF) for i in range(4)).strip() or "UNKNOWN"
+    return chosen_w, chosen_h, fps, fourcc
+
 # ---- Use test images instead of camera feed ----
 USE_TEST_IMAGES = False
 
 if USE_TEST_IMAGES:
-    test_image_dir = "test_images"
+    test_image_dir = "test_images/newer_test_images"
     test_images = sorted(glob.glob(os.path.join(test_image_dir, "*.jpg")))
     if not test_images:
         print(f"No images found in {test_image_dir}")
@@ -18,9 +55,11 @@ if USE_TEST_IMAGES:
     cap = None
 else:
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-    #cap.set(cv2.CAP_PROP_FPS,15)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    if not cap.isOpened():
+        raise RuntimeError("Could not open camera device 0")
+
+    w, h, fps, pix_fmt = configure_max_resolution(cap)
+    print(f"Camera mode: {w}x{h} @ {fps:.1f} FPS, format={pix_fmt}")
     cap.set(cv2.CAP_PROP_CONTRAST, 50)
     test_images = None
     image_index = 0
@@ -61,6 +100,18 @@ BRIDGE_ITER = 1
 # NMS
 NMS_CENTER_DIST = 28
 NMS_AXIS_DIST = 12
+
+# white infill tuning
+MIN_WHITE_SCORE = 0.35
+WHITE_SAT_MAX = 80
+WHITE_VAL_MIN = 145
+
+# target persistence / aiming
+TARGET_NEIGHBOR_RADIUS = 180.0
+TARGET_PERSIST_DIST = 140.0
+TARGET_MATCH_MAX_DIST = 90.0
+TARGET_SWITCH_MARGIN = 0.06
+TARGET_MISS_TOLERANCE = 3
 
 def ellipse_points(cx, cy, a, b, ang_deg, n=120):
     t = np.linspace(0, 2*np.pi, n, endpoint=False)
@@ -159,11 +210,10 @@ def partial_arc_score(edges, cx, cy, MA, ma, angle_deg, tol=0.18):
     # Combined: weight coverage heavily but reward continuity
     return 0.7 * coverage_score + 0.3 * gap_score
 
-def check_white_infill(frame, cx, cy, MA, ma, angle, threshold=180):
+def check_white_infill(frame, cx, cy, MA, ma, angle, sat_max=80, val_min=145):
     """
-    Check if the interior of an ellipse has mostly white/bright pixels.
-    Returns a score from 0 to 1 indicating how "white" the interior is.
-    A loose constraint: returns True if average brightness > threshold.
+    Check if the interior of an ellipse has white-like pixels using HSV.
+    Returns a score from 0 to 1. Higher means more likely to be white cup interior.
     """
     h, w = frame.shape[:2]
     a = MA / 2.0
@@ -177,26 +227,36 @@ def check_white_infill(frame, cx, cy, MA, ma, angle, threshold=180):
     interior = frame[mask > 0]
     if len(interior) == 0:
         return 0.5  # Default to neutral if no pixels
-    
-    # Convert to grayscale if color image
-    if len(interior.shape) == 2:
-        gray = interior
-    else:
-        # For BGR, compute mean brightness across channels
-        gray = np.mean(interior, axis=1).astype(np.uint8)
-    
-    # Calculate average brightness
-    avg_brightness = np.mean(gray)
-    
-    # Return score: how close to white (255)
-    white_score = avg_brightness / 255.0
-    return white_score
+
+    # If grayscale, fall back to brightness-based score
+    if len(frame.shape) == 2 or (len(interior.shape) == 1):
+        if len(interior.shape) == 1:
+            gray = interior
+        else:
+            gray = np.mean(interior, axis=1).astype(np.uint8)
+        return float(np.mean(gray) / 255.0)
+
+    # HSV-based whiteness: low saturation + high value
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    interior_hsv = hsv[mask > 0]
+    if len(interior_hsv) == 0:
+        return 0.5
+
+    sat = interior_hsv[:, 1].astype(np.float32)
+    val = interior_hsv[:, 2].astype(np.float32)
+
+    white_like = (sat <= sat_max) & (val >= val_min)
+    white_ratio = float(np.mean(white_like))
+
+    # Blend with normalized brightness for smoother behavior
+    brightness_score = float(np.mean(val) / 255.0)
+    return 0.75 * white_ratio + 0.25 * brightness_score
 
 def maybe_add_candidate(candidates, points_xy, edges_stable, cx, cy, MA, ma, angle, ring_thick, support_thresh, frame_for_infill=None):
     major_axis = max(MA, ma)
     minor_axis = min(MA, ma)
 
-    if major_axis < MIN_MAJOR_AXIS or minor_axis < MIN_MINOR_AXIS or major_axis > MAX_AXIS:
+    if major_axis < MIN_MAJOR_AXIS or minor_axis < MIN_MINOR_AXIS or minor_axis > MAX_MINOR_AXIS or major_axis > MAX_AXIS:
         return
 
     aspect = minor_axis / major_axis
@@ -219,7 +279,16 @@ def maybe_add_candidate(candidates, points_xy, edges_stable, cx, cy, MA, ma, ang
     # Check white infill (loose constraint)
     white_score = 0.5  # default neutral
     if frame_for_infill is not None:
-        white_score = check_white_infill(frame_for_infill, cx, cy, MA, ma, angle, threshold=180)
+        white_score = check_white_infill(
+            frame_for_infill,
+            cx,
+            cy,
+            MA,
+            ma,
+            angle,
+            sat_max=WHITE_SAT_MAX,
+            val_min=WHITE_VAL_MIN,
+        )
 
     keep = (
         (sc >= support_thresh)
@@ -233,7 +302,7 @@ def maybe_add_candidate(candidates, points_xy, edges_stable, cx, cy, MA, ma, ang
     
     # Apply white infill filter: if we have frame data, require reasonable whiteness
     # This is a loose constraint - just require it's not very dark (< 0.3 = very dark)
-    if keep and frame_for_infill is not None and white_score < 0.7:
+    if keep and frame_for_infill is not None and white_score < MIN_WHITE_SCORE:
         return
     
     if not keep:
@@ -251,6 +320,187 @@ def maybe_add_candidate(candidates, points_xy, edges_stable, cx, cy, MA, ma, ang
         "white_score": white_score,
         "rank": 0.50 * sc + 0.35 * inlier + 0.15 * arc_score,
     })
+
+def compute_cup_confidence(ells):
+    """
+    Compute confidence that each ellipse is a cup based on similarity to nearby ellipses.
+    Cups typically have multiple similar ellipses (rims, bottom, etc.) at similar locations.
+    Returns list of ellipses with added 'cup_confidence' field (0-1).
+    """
+    for i, e1 in enumerate(ells):
+        similarity_score = 0.0
+        similar_count = 0
+        
+        for j, e2 in enumerate(ells):
+            if i == j:
+                continue
+            
+            # Distance between centers
+            dist = np.hypot(e1["cx"] - e2["cx"], e1["cy"] - e2["cy"])
+            
+            # Size similarity (ratio of major axes)
+            size_ratio = min(e1["MA"], e2["MA"]) / max(e1["MA"], e2["MA"])
+            
+            # Shape similarity (aspect ratio comparison)
+            aspect1 = min(e1["MA"], e1["ma"]) / max(e1["MA"], e1["ma"])
+            aspect2 = min(e2["MA"], e2["ma"]) / max(e2["MA"], e2["ma"])
+            aspect_diff = abs(aspect1 - aspect2)
+            
+            # Angle similarity
+            angle_diff = min(abs(e1["angle"] - e2["angle"]), 
+                           180 - abs(e1["angle"] - e2["angle"]))
+            
+            # Score this pair: similar size, shape, angle, and nearby location
+            # Cups have concentric ellipses, so dist should be small relative to size
+            max_size = max(e1["MA"], e2["MA"])
+            relative_dist = dist / max_size if max_size > 0 else 1.0
+            
+            # Good match: close together, similar size, similar aspect
+            if (relative_dist < 0.5 and size_ratio > 0.6 and 
+                aspect_diff < 0.3 and angle_diff < 30):
+                # Weight by how good the match is
+                match_score = (size_ratio * 0.4 + 
+                             (1.0 - aspect_diff) * 0.3 + 
+                             (1.0 - relative_dist) * 0.2 +
+                             (1.0 - angle_diff / 30.0) * 0.1)
+                similarity_score += match_score
+                similar_count += 1
+        
+        # Normalize: more similar ellipses = higher confidence
+        # Cups typically have 2-4 visible ellipses
+        if similar_count > 0:
+            avg_similarity = similarity_score / similar_count
+            # Boost confidence for having multiple similar ellipses
+            count_boost = min(similar_count / 3.0, 1.0)  # Cap at 3 similar ellipses
+            confidence = min(avg_similarity * (0.5 + 0.5 * count_boost), 1.0)
+        else:
+            confidence = 0.1  # Low confidence if isolated
+        
+        # Combine with existing rank score
+        e1["cup_confidence"] = 0.6 * confidence + 0.4 * e1["rank"]
+    
+    return ells
+
+
+def compute_cluster_scores(ells, radius_px=180.0):
+    """
+    Score each ellipse by how close it is to other ellipses (0-1).
+    Higher score means the cup sits in a denser local cluster.
+    Expects global coords in `gx`,`gy`.
+    """
+    if not ells:
+        return []
+
+    raw = []
+    for i, e1 in enumerate(ells):
+        s = 0.0
+        for j, e2 in enumerate(ells):
+            if i == j:
+                continue
+            d = np.hypot(e1["gx"] - e2["gx"], e1["gy"] - e2["gy"])
+            if d <= radius_px:
+                s += (1.0 - (d / radius_px))
+        raw.append(s)
+
+    max_raw = max(raw) if raw else 0.0
+    if max_raw <= 1e-6:
+        return [0.0 for _ in raw]
+    return [r / max_raw for r in raw]
+
+
+def choose_best_target(ells, target_state):
+    """
+    Choose best current target, preferring:
+    1) high cup confidence,
+    2) dense nearby cup cluster,
+    3) continuity with last chosen target.
+    Returns (selected_index, selected_score).
+    """
+    if not ells:
+        return None, 0.0
+
+    cluster_scores = compute_cluster_scores(ells, radius_px=TARGET_NEIGHBOR_RADIUS)
+
+    scored = []
+    for i, e in enumerate(ells):
+        cup_conf = e.get("cup_confidence", 0.0)
+        rank = e.get("rank", 0.0)
+        cluster = cluster_scores[i]
+
+        persist_bonus = 0.0
+        if target_state["active"]:
+            d_prev = np.hypot(e["gx"] - target_state["cx"], e["gy"] - target_state["cy"])
+            # Only boost continuity for candidates plausibly matching the same cup.
+            if d_prev <= TARGET_MATCH_MAX_DIST:
+                persist_bonus = np.exp(-d_prev / TARGET_PERSIST_DIST) * target_state["strength"]
+
+        score = 0.52 * cup_conf + 0.30 * cluster + 0.08 * rank + 0.20 * persist_bonus
+        scored.append(score)
+
+    best_idx = int(np.argmax(scored))
+    best_score = scored[best_idx]
+
+    # Hysteresis: if previous target is still visible, don't switch for tiny gains.
+    if target_state["active"] and target_state["missed"] <= TARGET_MISS_TOLERANCE:
+        dists = [np.hypot(e["gx"] - target_state["cx"], e["gy"] - target_state["cy"]) for e in ells]
+        prev_idx = int(np.argmin(dists))
+        if dists[prev_idx] <= TARGET_MATCH_MAX_DIST:
+            if scored[prev_idx] + TARGET_SWITCH_MARGIN >= best_score:
+                best_idx = prev_idx
+
+    return best_idx, best_score
+
+
+def update_target_state(target_state, selected_ellipse, selected_score=0.0):
+    """
+    Update persistent target state with selected ellipse or handle miss.
+    """
+    if selected_ellipse is None:
+        if target_state["active"]:
+            target_state["missed"] += 1
+            target_state["strength"] *= 0.85
+            target_state["target_score"] *= 0.90
+            if target_state["missed"] > TARGET_MISS_TOLERANCE:
+                target_state["active"] = False
+                target_state["strength"] = 0.0
+                target_state["target_score"] = 0.0
+        return
+
+    gx = float(selected_ellipse["gx"])
+    gy = float(selected_ellipse["gy"])
+    MA = float(selected_ellipse["MA"])
+    ma = float(selected_ellipse["ma"])
+    angle = float(selected_ellipse["angle"])
+
+    if target_state["active"]:
+        d = np.hypot(gx - target_state["cx"], gy - target_state["cy"])
+        # If we were in hold/lost state, snap to reacquired target (no walking).
+        if d <= TARGET_MATCH_MAX_DIST and target_state["missed"] == 0:
+            a = 0.35  # EMA smoothing for stable aim point
+            target_state["cx"] = (1.0 - a) * target_state["cx"] + a * gx
+            target_state["cy"] = (1.0 - a) * target_state["cy"] + a * gy
+            target_state["MA"] = (1.0 - a) * target_state["MA"] + a * MA
+            target_state["ma"] = (1.0 - a) * target_state["ma"] + a * ma
+            target_state["angle"] = (1.0 - a) * target_state["angle"] + a * angle
+            target_state["strength"] = min(1.0, target_state["strength"] + 0.18)
+        else:
+            target_state["cx"] = gx
+            target_state["cy"] = gy
+            target_state["MA"] = MA
+            target_state["ma"] = ma
+            target_state["angle"] = angle
+            target_state["strength"] = 0.65
+    else:
+        target_state["active"] = True
+        target_state["cx"] = gx
+        target_state["cy"] = gy
+        target_state["MA"] = MA
+        target_state["ma"] = ma
+        target_state["angle"] = angle
+        target_state["strength"] = 0.65
+
+    target_state["target_score"] = float(selected_score)
+    target_state["missed"] = 0
 
 def nms_ellipses(ells):
     ells = sorted(ells, key=lambda d: d["rank"], reverse=True)
@@ -277,8 +527,8 @@ def clamp_roi(x0, y0, x1, y1, w, h):
 
 def biggest_red_roi(frame_bgr, pad=60, min_area=1500):
     """
-    Returns (x0,y0,x1,y1, red_mask) for the biggest red blob.
-    If nothing solid found, returns full-frame ROI.
+    Returns (x0,y0,x1,y1, red_mask, found_red) for the biggest red blob.
+    If nothing solid found, returns full-frame ROI and found_red=False.
     """
     h, w = frame_bgr.shape[:2]
     hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
@@ -305,12 +555,12 @@ def biggest_red_roi(frame_bgr, pad=60, min_area=1500):
 
     cnts, _ = cv2.findContours(red_merged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
-        return 0, 0, w, h, red
+        return 0, 0, w, h, red, False
 
     # Filter by minimum area and collect valid contours
     valid_cnts = [c for c in cnts if cv2.contourArea(c) >= min_area]
     if not valid_cnts:
-        return 0, 0, w, h, red
+        return 0, 0, w, h, red, False
 
     # Combine all valid blobs into a single bounding box
     all_points = np.vstack(valid_cnts)
@@ -324,7 +574,7 @@ def biggest_red_roi(frame_bgr, pad=60, min_area=1500):
     x1 = x + rw + pad
     y1 = y + rh + pad - vertical_shift
     x0, y0, x1, y1 = clamp_roi(x0, y0, x1, y1, w, h)
-    return x0, y0, x1, y1, red
+    return x0, y0, x1, y1, red, True
 
 
 def biggest_blue_roi(frame_bgr, pad=60, min_area=1500):
@@ -397,8 +647,10 @@ TRACKBAR_MAX = {
     "Canny Low": 255,
     "Min Major Axis": 250,
     "Min Minor Axis": 120,
+    "Max Minor Axis": 250,
     "Max Axis": 450,
     "Min Aspect x100": 100,
+    "Max Aspect x100": 100,
     "Mask Lower": 255,
     "Fallback Supp x100": 100,
     "Min Inlier x100": 100,
@@ -413,6 +665,10 @@ TRACKBAR_MAX = {
     "Use Red ROI": 1,
     "Red Pad": 200,
     "Red MinArea": 200,
+    "Cup Confidence x100": 100,
+    "Min White x100": 100,
+    "White Sat Max": 255,
+    "White Val Min": 255,
 }
 
 def apply_trackbar_settings(settings):
@@ -442,8 +698,10 @@ cv2.createTrackbar("Dilate Iterations", "Tuning", 3, 10, lambda x: None)
 cv2.createTrackbar("Canny Low", "Tuning", 80, 255, lambda x: None)
 cv2.createTrackbar("Min Major Axis", "Tuning", 40, 250, lambda x: None)
 cv2.createTrackbar("Min Minor Axis", "Tuning", 12, 120, lambda x: None)
+cv2.createTrackbar("Max Minor Axis", "Tuning", 120, 250, lambda x: None)
 cv2.createTrackbar("Max Axis", "Tuning", 180, 450, lambda x: None)
 cv2.createTrackbar("Min Aspect x100", "Tuning", 18, 100, lambda x: None)
+cv2.createTrackbar("Max Aspect x100", "Tuning", 100, 100, lambda x: None)
 cv2.createTrackbar("Mask Lower", "Tuning", 0, 255, lambda x: None)
 cv2.createTrackbar("Fallback Supp x100", "Tuning", 28, 100, lambda x: None)
 cv2.createTrackbar("Min Inlier x100", "Tuning", 52, 100, lambda x: None)
@@ -461,7 +719,27 @@ cv2.createTrackbar("Use Red ROI", "Tuning", 1, 1, lambda x: None)
 cv2.createTrackbar("Red Pad", "Tuning", 70, 200, lambda x: None)
 cv2.createTrackbar("Red MinArea", "Tuning", 15, 200, lambda x: None)  # *100
 
+# Cup confidence threshold
+cv2.createTrackbar("Cup Confidence x100", "Tuning", 30, 100, lambda x: None)
+
+# White infill tuning
+cv2.createTrackbar("Min White x100", "Tuning", 35, 100, lambda x: None)
+cv2.createTrackbar("White Sat Max", "Tuning", 80, 255, lambda x: None)
+cv2.createTrackbar("White Val Min", "Tuning", 145, 255, lambda x: None)
+
 apply_trackbar_settings(load_trackbar_settings(SETTINGS_PATH))
+
+target_state = {
+    "active": False,
+    "cx": 0.0,
+    "cy": 0.0,
+    "MA": 0.0,
+    "ma": 0.0,
+    "angle": 0.0,
+    "strength": 0.0,
+    "missed": 0,
+    "target_score": 0.0,
+}
 
 while True:
     if USE_TEST_IMAGES:
@@ -492,10 +770,14 @@ while True:
     red_min_area = cv2.getTrackbarPos("Red MinArea", "Tuning") * 100
 
     if use_roi:
-        x0, y0, x1, y1, redmask = biggest_red_roi(frame, pad=red_pad, min_area=red_min_area)
+        x0, y0, x1, y1, redmask, red_found = biggest_red_roi(frame, pad=red_pad, min_area=red_min_area)
     else:
         x0, y0, x1, y1 = 0, 0, W, H
         redmask = np.zeros((H, W), dtype=np.uint8)
+        red_found = True
+
+    # Only run heavy analysis when red is found (when ROI mode is enabled).
+    analyze_enabled = (not use_roi) or red_found
 
     # Apply your mask (global), then crop for edge/ellipse work
     masked_frame = cv2.bitwise_and(frame, frame, mask=mask)
@@ -509,8 +791,10 @@ while True:
     CANNY_LO = cv2.getTrackbarPos("Canny Low", "Tuning")
     MIN_MAJOR_AXIS = cv2.getTrackbarPos("Min Major Axis", "Tuning")
     MIN_MINOR_AXIS = cv2.getTrackbarPos("Min Minor Axis", "Tuning")
+    MAX_MINOR_AXIS = max(MIN_MINOR_AXIS + 1, cv2.getTrackbarPos("Max Minor Axis", "Tuning"))
     MAX_AXIS = max(MIN_MAJOR_AXIS + 1, cv2.getTrackbarPos("Max Axis", "Tuning"))
     MIN_ASPECT = cv2.getTrackbarPos("Min Aspect x100", "Tuning") / 100.0
+    MAX_ASPECT = max(MIN_ASPECT, cv2.getTrackbarPos("Max Aspect x100", "Tuning") / 100.0)
     MIN_SUPPORT_FALLBACK = cv2.getTrackbarPos("Fallback Supp x100", "Tuning") / 100.0
     MIN_INLIER_SCORE = cv2.getTrackbarPos("Min Inlier x100", "Tuning") / 100.0
     STRICT_INLIER_SCORE = cv2.getTrackbarPos("Strict Inlier x100", "Tuning") / 100.0
@@ -521,6 +805,9 @@ while True:
     MIN_CONTOUR_POINTS = max(5, cv2.getTrackbarPos("Min Cnt Pts", "Tuning"))
     BRIDGE_ITER = cv2.getTrackbarPos("Bridge Iter", "Tuning")
     NMS_CENTER_DIST = max(1, cv2.getTrackbarPos("NMS Ctr Dist", "Tuning"))
+    MIN_WHITE_SCORE = cv2.getTrackbarPos("Min White x100", "Tuning") / 100.0
+    WHITE_SAT_MAX = cv2.getTrackbarPos("White Sat Max", "Tuning")
+    WHITE_VAL_MIN = cv2.getTrackbarPos("White Val Min", "Tuning")
 
     if CANNY_LO == 0:
         CANNY_LO = 1
@@ -532,159 +819,199 @@ while True:
     if use_roi:
         cv2.rectangle(out, (x0, y0), (x1, y1), (255, 0, 255), 2)
 
-    # ------- run edges ONLY on ROI -------
-    gray = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    blur = cv2.GaussianBlur(blur, (5, 5), 0)
+    roi_h = max(1, y1 - y0)
+    roi_w = max(1, x1 - x0)
+    edges = np.zeros((roi_h, roi_w), dtype=np.uint8)
+    edges_stable = np.zeros((roi_h, roi_w), dtype=np.uint8)
+    edges_fit = np.zeros((roi_h, roi_w), dtype=np.uint8)
+    kept = []
+    best_target_idx = None
 
-    edges = cv2.Canny(blur, CANNY_LO, CANNY_HI)
-    edges_stable = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, K3, iterations=1)
-    edges_stable = cv2.dilate(edges_stable, K3, iterations=DILATE_ITER)
+    if analyze_enabled:
+        # ------- run edges ONLY on ROI -------
+        gray = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(gray, (5, 5), 0)
+        blur = cv2.GaussianBlur(blur, (5, 5), 0)
 
-    # fit map: extra bridging for broken arcs; support still checked on edges_stable
-    # Use both dilate and close to bridge gaps more effectively
-    if BRIDGE_ITER > 0:
-        # First: dilate to bridge small gaps
-        edges_fit = cv2.dilate(edges_stable, K5, iterations=BRIDGE_ITER)
-        # Then: close to connect nearby components
-        edges_fit = cv2.morphologyEx(edges_fit, cv2.MORPH_CLOSE, K5, iterations=BRIDGE_ITER // 2 + 1)
+        edges = cv2.Canny(blur, CANNY_LO, CANNY_HI)
+        edges_stable = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, K3, iterations=1)
+        edges_stable = cv2.dilate(edges_stable, K3, iterations=DILATE_ITER)
+
+        # fit map: extra bridging for broken arcs; support still checked on edges_stable
+        # Use both dilate and close to bridge gaps more effectively
+        if BRIDGE_ITER > 0:
+            # First: dilate to bridge small gaps
+            edges_fit = cv2.dilate(edges_stable, K5, iterations=BRIDGE_ITER)
+            # Then: close to connect nearby components
+            edges_fit = cv2.morphologyEx(edges_fit, cv2.MORPH_CLOSE, K5, iterations=BRIDGE_ITER // 2 + 1)
+        else:
+            edges_fit = edges_stable
+
+        # Connected components on ROI edges
+        num, labels, stats, _ = cv2.connectedComponentsWithStats((edges_fit > 0).astype(np.uint8), connectivity=8)
+
+        candidates = []
+
+        # Path A: contour-based fits (works better on open arc fragments)
+        cnts, _ = cv2.findContours(edges_fit, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+        for cnt in cnts:
+            if len(cnt) < MIN_CONTOUR_POINTS:
+                continue
+
+            pts_cnt = cnt.reshape(-1, 2).astype(np.float32)
+            if len(pts_cnt) < 5:
+                continue
+
+            (cc, rr), (MA, ma), angle = cv2.fitEllipse(cnt)
+            maybe_add_candidate(
+                candidates,
+                pts_cnt,
+                edges_stable,
+                cc,
+                rr,
+                MA,
+                ma,
+                angle,
+                RING_THICK,
+                SUPPORT_THRESH,
+                frame_for_infill=roi_frame,
+            )
+
+        # Path B: component fits + random subset fits (handles merged overlapping rims)
+        for lab in range(1, num):
+            area = stats[lab, cv2.CC_STAT_AREA]
+            if area < MIN_COMP_PIX or area > MAX_COMP_PIX:
+                continue
+
+            ys, xs = np.where(labels == lab)
+            if len(xs) < 5:
+                continue
+
+            pts_xy = np.stack([xs, ys], axis=1).astype(np.float32)
+            pts_cv = pts_xy.astype(np.int32).reshape(-1, 1, 2)
+
+            (cx, cy), (MA, ma), angle = cv2.fitEllipse(pts_cv)
+            maybe_add_candidate(
+                candidates,
+                pts_xy,
+                edges_stable,
+                cx,
+                cy,
+                MA,
+                ma,
+                angle,
+                RING_THICK,
+                SUPPORT_THRESH,
+                frame_for_infill=roi_frame,
+            )
+
+            if len(pts_xy) >= RANDOM_FIT_POINTS:
+                for _ in range(RANDOM_FIT_TRIALS):
+                    idx = np.random.choice(len(pts_xy), RANDOM_FIT_POINTS, replace=False)
+                    sub = pts_xy[idx]
+                    sub_cv = sub.astype(np.int32).reshape(-1, 1, 2)
+                    try:
+                        (cx2, cy2), (MA2, ma2), ang2 = cv2.fitEllipse(sub_cv)
+                    except cv2.error:
+                        continue
+
+                    maybe_add_candidate(
+                        candidates,
+                        pts_xy,
+                        edges_stable,
+                        cx2,
+                        cy2,
+                        MA2,
+                        ma2,
+                        ang2,
+                        RING_THICK,
+                        SUPPORT_THRESH,
+                        frame_for_infill=roi_frame,
+                    )
+
+            # NEW: Extra random trials for partial arc detection
+            # Try smaller random subsets to find good partial arcs
+            if len(pts_xy) >= RANDOM_FIT_POINTS * 0.6:
+                for _ in range(RANDOM_FIT_TRIALS // 2):
+                    # Use smaller subset (60% of normal) to find best partial fit
+                    subset_size = max(5, int(RANDOM_FIT_POINTS * 0.6))
+                    idx = np.random.choice(len(pts_xy), subset_size, replace=False)
+                    sub = pts_xy[idx]
+                    sub_cv = sub.astype(np.int32).reshape(-1, 1, 2)
+                    try:
+                        (cx2, cy2), (MA2, ma2), ang2 = cv2.fitEllipse(sub_cv)
+                    except cv2.error:
+                        continue
+
+                    maybe_add_candidate(
+                        candidates,
+                        pts_xy,
+                        edges_stable,
+                        cx2,
+                        cy2,
+                        MA2,
+                        ma2,
+                        ang2,
+                        RING_THICK,
+                        SUPPORT_THRESH,
+                        frame_for_infill=roi_frame,
+                    )
+
+        kept = nms_ellipses(candidates)
+
+        # Compute cup confidence for all kept ellipses
+        kept = compute_cup_confidence(kept)
+
+        # Get cup confidence threshold
+        CUP_CONFIDENCE_THRESH = cv2.getTrackbarPos("Cup Confidence x100", "Tuning") / 100.0
+
+        # Filter by cup confidence threshold
+        kept = [e for e in kept if e.get("cup_confidence", 0) >= CUP_CONFIDENCE_THRESH]
+
+        for e in kept:
+            e["gx"] = e["cx"] + x0
+            e["gy"] = e["cy"] + y0
+
+        best_target_idx, best_target_score = choose_best_target(kept, target_state)
+        selected = kept[best_target_idx] if best_target_idx is not None else None
+        update_target_state(target_state, selected, best_target_score)
     else:
-        edges_fit = edges_stable
-
-    # Connected components on ROI edges
-    num, labels, stats, _ = cv2.connectedComponentsWithStats((edges_fit > 0).astype(np.uint8), connectivity=8)
-
-    candidates = []
-
-    # Path A: contour-based fits (works better on open arc fragments)
-    cnts, _ = cv2.findContours(edges_fit, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-    for cnt in cnts:
-        if len(cnt) < MIN_CONTOUR_POINTS:
-            continue
-
-        pts_cnt = cnt.reshape(-1, 2).astype(np.float32)
-        if len(pts_cnt) < 5:
-            continue
-
-        (cc, rr), (MA, ma), angle = cv2.fitEllipse(cnt)
-        maybe_add_candidate(
-            candidates,
-            pts_cnt,
-            edges_stable,
-            cc,
-            rr,
-            MA,
-            ma,
-            angle,
-            RING_THICK,
-            SUPPORT_THRESH,
-            frame_for_infill=roi_frame,
-        )
-
-    # Path B: component fits + random subset fits (handles merged overlapping rims)
-    for lab in range(1, num):
-        area = stats[lab, cv2.CC_STAT_AREA]
-        if area < MIN_COMP_PIX or area > MAX_COMP_PIX:
-            continue
-
-        ys, xs = np.where(labels == lab)
-        if len(xs) < 5:
-            continue
-
-        pts_xy = np.stack([xs, ys], axis=1).astype(np.float32)
-        pts_cv = pts_xy.astype(np.int32).reshape(-1, 1, 2)
-
-        (cx, cy), (MA, ma), angle = cv2.fitEllipse(pts_cv)
-        maybe_add_candidate(
-            candidates,
-            pts_xy,
-            edges_stable,
-            cx,
-            cy,
-            MA,
-            ma,
-            angle,
-            RING_THICK,
-            SUPPORT_THRESH,
-            frame_for_infill=roi_frame,
-        )
-
-        if len(pts_xy) >= RANDOM_FIT_POINTS:
-            for _ in range(RANDOM_FIT_TRIALS):
-                idx = np.random.choice(len(pts_xy), RANDOM_FIT_POINTS, replace=False)
-                sub = pts_xy[idx]
-                sub_cv = sub.astype(np.int32).reshape(-1, 1, 2)
-                try:
-                    (cx2, cy2), (MA2, ma2), ang2 = cv2.fitEllipse(sub_cv)
-                except cv2.error:
-                    continue
-
-                maybe_add_candidate(
-                    candidates,
-                    pts_xy,
-                    edges_stable,
-                    cx2,
-                    cy2,
-                    MA2,
-                    ma2,
-                    ang2,
-                    RING_THICK,
-                    SUPPORT_THRESH,
-                    frame_for_infill=roi_frame,
-                )
-        
-        # NEW: Extra random trials for partial arc detection
-        # Try smaller random subsets to find good partial arcs
-        if len(pts_xy) >= RANDOM_FIT_POINTS * 0.6:
-            for _ in range(RANDOM_FIT_TRIALS // 2):
-                # Use smaller subset (60% of normal) to find best partial fit
-                subset_size = max(5, int(RANDOM_FIT_POINTS * 0.6))
-                idx = np.random.choice(len(pts_xy), subset_size, replace=False)
-                sub = pts_xy[idx]
-                sub_cv = sub.astype(np.int32).reshape(-1, 1, 2)
-                try:
-                    (cx2, cy2), (MA2, ma2), ang2 = cv2.fitEllipse(sub_cv)
-                except cv2.error:
-                    continue
-
-                maybe_add_candidate(
-                    candidates,
-                    pts_xy,
-                    edges_stable,
-                    cx2,
-                    cy2,
-                    MA2,
-                    ma2,
-                    ang2,
-                    RING_THICK,
-                    SUPPORT_THRESH,
-                    frame_for_infill=roi_frame,
-                )
-
-    kept = nms_ellipses(candidates)
+        # No red ROI detected: skip expensive full-image analysis and just hold target briefly.
+        update_target_state(target_state, None, 0.0)
 
     # Create visualization for ROI edges with ellipses overlay
     edges_vis = cv2.cvtColor(edges_stable, cv2.COLOR_GRAY2BGR)
 
     # Draw ellipses back in full-frame coords
-    for e in kept:
+    for idx, e in enumerate(kept):
         cx_roi, cy_roi = e["cx"], e["cy"]
         cx = cx_roi + x0
         cy = cy_roi + y0
 
         MA, ma, angle = e["MA"], e["ma"], e["angle"]
+        
+        # Use different color for selected persistent target
+        is_target = (best_target_idx is not None and idx == best_target_idx)
+        ellipse_color = (255, 0, 255) if is_target else (0, 255, 0)  # Purple target, green others
 
         # Draw on full frame
-        cv2.ellipse(out, ((cx, cy), (MA, ma), angle), (0, 255, 0), 2)
-        cv2.circle(out, (int(cx), int(cy)), 3, (0, 0, 255), -1)
-        arc_str = f' a:{e.get("arc_score", 0):.2f}' if "arc_score" in e else ''
-        white_str = f' w:{e.get("white_score", 0.5):.2f}' if "white_score" in e else ''
-        cv2.putText(out, f's:{e["score"]:.2f} i:{e["inlier"]:.2f}{arc_str}{white_str}', (int(cx) + 6, int(cy) - 6),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+        cv2.ellipse(out, ((cx, cy), (MA, ma), angle), ellipse_color, 2)
+        cv2.circle(out, (int(cx), int(cy)), 4 if is_target else 3, ellipse_color, -1)
         
         # Draw on ROI edges visualization (in ROI coordinates)
-        cv2.ellipse(edges_vis, ((cx_roi, cy_roi), (MA, ma), angle), (0, 255, 0), 2)
-        cv2.circle(edges_vis, (int(cx_roi), int(cy_roi)), 3, (0, 0, 255), -1)
+        cv2.ellipse(edges_vis, ((cx_roi, cy_roi), (MA, ma), angle), ellipse_color, 2)
+        cv2.circle(edges_vis, (int(cx_roi), int(cy_roi)), 4 if is_target else 3, ellipse_color, -1)
+
+    # Persistent aim marker (survives short dropouts)
+    if target_state["active"]:
+        tx = int(round(target_state["cx"]))
+        ty = int(round(target_state["cy"]))
+        color = (0, 255, 255) if target_state["missed"] == 0 else (0, 165, 255)
+        cv2.drawMarker(out, (tx, ty), color, markerType=cv2.MARKER_CROSS, markerSize=20, thickness=2)
+
+        status = "LOCK" if target_state["missed"] == 0 else f"HOLD {target_state['missed']}/{TARGET_MISS_TOLERANCE}"
+        cv2.putText(out, f"TARGET SCORE: {target_state['target_score']:.2f}  {status}", (tx + 10, ty + 18),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
 
     # Display: show ROI edge maps but also a full-frame overlay
     cv2.imshow("ellipses", out)
