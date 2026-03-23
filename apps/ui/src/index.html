@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Turret Operator Panel</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="layout">
+    <section class="video-panel card">
+      <h2>Live Vision</h2>
+      <div class="video-frame">
+        <img id="stream" src="/stream.mjpg" alt="Live stream" />
+      </div>
+      <div class="target">
+        <span>Target X:</span><strong id="targetX">--</strong>
+        <span>Target Y:</span><strong id="targetY">--</strong>
+        <span>Conf:</span><strong id="targetConf">--</strong>
+      </div>
+    </section>
+
+    <section class="controls card">
+      <h2>System</h2>
+      <div class="badges">
+        <span class="badge" id="modeBadge">MODE: --</span>
+        <span class="badge" id="yawBadge">Yaw: --</span>
+        <span class="badge" id="pitchBadge">Pitch: --</span>
+        <span class="badge" id="aimBadge">Aim: --</span>
+        <span class="badge" id="wheelBadge">Flywheel: --</span>
+        <span class="badge" id="fireBadge">Fire Gate: --</span>
+        <span class="badge" id="visionSourceBadge">Vision Source: --</span>
+        <span class="badge" id="testImageBadge">Test Image: --</span>
+      </div>
+
+      <div class="buttons">
+        <button id="useCameraBtn">Use Camera</button>
+        <button id="useTestImagesBtn">Use Test Images</button>
+        <button id="nextTestImageBtn">Next Test Image</button>
+        <button id="toggleAutoTestBtn">Toggle Auto Test</button>
+        <button id="homeBtn">Home Yaw</button>
+        <button id="armBtn">Arm</button>
+        <button id="disarmBtn">Disarm</button>
+        <button id="toggleAimBtn">Toggle Aim Ready</button>
+        <button id="toggleWheelBtn">Toggle Flywheel Ready</button>
+        <button id="fireBtn" class="danger" disabled>Fire</button>
+        <button id="estopBtn" class="danger">E-Stop</button>
+        <button id="resetFaultBtn">Reset Fault</button>
+      </div>
+
+      <div class="note">
+        Pitch zero is assumed at startup. Confirm mechanical down position before arming.
+      </div>
+
+      <h3>Events</h3>
+      <pre id="log" class="log"></pre>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
