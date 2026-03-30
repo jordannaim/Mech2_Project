@@ -200,6 +200,15 @@ class PicoComms:
     # Public API
     # ------------------------------------------------------------------
 
+    def set_yaw_velocity(self, freq_hz: int) -> bool:
+        """
+        Run yaw continuously at freq_hz with no step limit.
+        Positive = right, negative = left, 0 = stop.
+        Non-blocking — no DONE event will be sent by the Pico.
+        Used for smooth vision-based alignment.
+        """
+        return self._send(f"YAW_VEL {freq_hz}")
+
     def move_yaw(self, degrees: float, freq_hz: int = 500) -> bool:
         """Start yaw move. Returns True when Pico acknowledges. Non-blocking."""
         self._done_yaw.clear()

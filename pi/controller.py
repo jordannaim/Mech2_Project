@@ -30,8 +30,11 @@ logger = logging.getLogger(__name__)
 CAMERA_HFOV_DEG = 60.0      # horizontal field of view of the camera
 CAMERA_VFOV_DEG = 40.0      # vertical field of view
 
-YAW_ALIGN_FREQ_HZ  = 300    # step freq during iterative yaw centering (slower = more precise)
-YAW_COARSE_FREQ_HZ = 600    # step freq for large initial moves
+YAW_VEL_KP         = 400    # proportional gain: maps |error| (0-1) to step freq (Hz)
+YAW_VEL_MIN_HZ     = 80     # minimum frequency sent — below this the stepper stalls
+YAW_VEL_MAX_HZ     = 500    # maximum frequency during alignment
+YAW_ALIGN_LOOP_S   = 0.05   # control loop period (20 Hz) — must be < one camera frame
+YAW_COARSE_FREQ_HZ = 600    # step freq for large non-vision moves
 PITCH_FREQ_HZ      = 400    # step freq for pitch moves
 
 YAW_DEAD_ZONE   = 0.04      # |x_norm - AIM_X_OFFSET| below this = centered enough to fire
@@ -146,50 +149,49 @@ class TurretController:
     # Aiming
     # ------------------------------------------------------------------
 
-    def align_yaw(
-        self,
-        max_iterations: int = 10,
-        timeout_per_move: float = 4.0,
-        settle_s: float = 0.15,
-    ) -> bool:
+    def align_yaw(self, timeout: float = 5.0) -> bool:
         """
-        Iteratively move yaw until the detected cup is horizontally centered
-        (|x_norm| < YAW_DEAD_ZONE).
+        Smoothly align yaw using continuous proportional velocity control.
 
-        Since the camera is mounted on the yaw axis, each correction move
-        directly re-centers the view.
+        Streams YAW_VEL commands to the Pico at ~20 Hz. Speed is proportional
+        to |error|, so the motor naturally slows as the cup centers — no
+        stop-start choppiness. Stops when |x_norm - AIM_X_OFFSET| < YAW_DEAD_ZONE
+        and holds steady for one extra confirmation frame.
 
-        Returns True if converged, False if couldn't lock on or timed out.
+        Returns True if converged within timeout, False if target lost or timed out.
         """
-        for iteration in range(max_iterations):
+        deadline = time.monotonic() + timeout
+        consecutive_centered = 0
+
+        while time.monotonic() < deadline:
             result = self.detector.get_result()
 
             if not result.valid or result.confidence < MIN_CONFIDENCE:
-                logger.warning("align_yaw iter %d: no valid target", iteration)
+                self.pico.set_yaw_velocity(0)
+                logger.warning("align_yaw: lost target (valid=%s conf=%.2f)",
+                               result.valid, result.confidence)
                 return False
 
-            x_norm = result.x_norm
-            logger.debug("align_yaw iter %d: x_norm=%.4f", iteration, x_norm)
+            error = result.x_norm - AIM_X_OFFSET
 
-            error = x_norm - AIM_X_OFFSET
             if abs(error) < YAW_DEAD_ZONE:
-                logger.info("Yaw aligned after %d iterations (x_norm=%.4f, offset=%.4f)",
-                            iteration, x_norm, AIM_X_OFFSET)
-                return True
+                consecutive_centered += 1
+                if consecutive_centered >= 2:
+                    self.pico.set_yaw_velocity(0)
+                    logger.info("Yaw aligned (x_norm=%.4f error=%.4f)", result.x_norm, error)
+                    return True
+                self.pico.set_yaw_velocity(0)
+            else:
+                consecutive_centered = 0
+                freq = int(min(YAW_VEL_MAX_HZ, max(YAW_VEL_MIN_HZ,
+                               YAW_VEL_KP * abs(error))))
+                signed_freq = freq if error > 0 else -freq
+                self.pico.set_yaw_velocity(signed_freq)
 
-            # Map pixel error to angle.
-            # error = +1.0 means cup is one half-frame to the right of the aim point.
-            delta_deg = error * (CAMERA_HFOV_DEG / 2.0)
-            logger.info("align_yaw iter %d: moving %.2f°", iteration, delta_deg)
+            time.sleep(YAW_ALIGN_LOOP_S)
 
-            if not self.pico.move_yaw_sync(delta_deg, YAW_ALIGN_FREQ_HZ, timeout_per_move):
-                logger.error("Yaw move timed out or failed on iteration %d", iteration)
-                return False
-
-            # Brief pause for camera to capture a fresh frame after motion
-            time.sleep(settle_s)
-
-        logger.warning("Yaw alignment did not converge in %d iterations", max_iterations)
+        self.pico.set_yaw_velocity(0)
+        logger.warning("align_yaw: timed out after %.1fs", timeout)
         return False
 
     def set_pitch_for_distance(self, distance_m: float, timeout: float = 8.0) -> bool:
