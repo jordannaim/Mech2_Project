@@ -41,6 +41,41 @@ def configure_max_resolution(cap):
     fourcc = "".join(chr((fourcc_int >> (8 * i)) & 0xFF) for i in range(4)).strip() or "UNKNOWN"
     return chosen_w, chosen_h, fps, fourcc
 
+
+EXPOSURE_MIN = -13
+EXPOSURE_MAX = -1
+DEFAULT_EXPOSURE = -7
+
+
+def exposure_to_slider(exposure_value):
+    val = int(round(exposure_value))
+    val = max(EXPOSURE_MIN, min(EXPOSURE_MAX, val))
+    return val - EXPOSURE_MIN
+
+
+def slider_to_exposure(slider_value):
+    val = int(slider_value) + EXPOSURE_MIN
+    return max(EXPOSURE_MIN, min(EXPOSURE_MAX, val))
+
+
+def set_manual_exposure(cap, exposure_value):
+    """
+    Lock camera to manual exposure and set a fixed exposure value.
+    This avoids frame-to-frame auto-exposure swings when scene brightness changes.
+    """
+    if cap is None:
+        return False, None
+
+    requested = float(max(EXPOSURE_MIN, min(EXPOSURE_MAX, int(round(exposure_value)))))
+
+    # V4L2 typically uses 1.0 for manual mode, 3.0 for auto mode.
+    cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1.0)
+    cap.set(cv2.CAP_PROP_EXPOSURE, requested)
+
+    actual = cap.get(cv2.CAP_PROP_EXPOSURE)
+    ok = abs(actual - requested) <= 1.0 if actual is not None else False
+    return ok, actual
+
 # ---- Use test images instead of camera feed ----
 USE_TEST_IMAGES = False
 
@@ -61,6 +96,14 @@ else:
     w, h, fps, pix_fmt = configure_max_resolution(cap)
     print(f"Camera mode: {w}x{h} @ {fps:.1f} FPS, format={pix_fmt}")
     cap.set(cv2.CAP_PROP_CONTRAST, 50)
+    exp_ok, exp_actual = set_manual_exposure(cap, DEFAULT_EXPOSURE)
+    print(
+        f"Manual exposure: requested={DEFAULT_EXPOSURE}, actual={exp_actual:.2f}"
+        if exp_actual is not None
+        else "Manual exposure: unavailable"
+    )
+    if not exp_ok:
+        print("Warning: camera did not fully accept requested exposure value.")
     test_images = None
     image_index = 0
 
@@ -614,6 +657,7 @@ TRACKBAR_MAX = {
     "Min Cnt Pts": 200,
     "Bridge Iter": 6,
     "NMS Ctr Dist": 120,
+    "Exposure": EXPOSURE_MAX - EXPOSURE_MIN,
     "Use Red ROI": 1,
     "Red Pad": 200,
     "Red MinArea": 200,
@@ -659,6 +703,7 @@ cv2.createTrackbar("Inlier Tol x100", "Tuning", 18, 60, lambda x: None)
 cv2.createTrackbar("Min Cnt Pts", "Tuning", 24, 200, lambda x: None)
 cv2.createTrackbar("Bridge Iter", "Tuning", 1, 6, lambda x: None)
 cv2.createTrackbar("NMS Ctr Dist", "Tuning", 28, 120, lambda x: None)
+cv2.createTrackbar("Exposure", "Tuning", exposure_to_slider(DEFAULT_EXPOSURE), EXPOSURE_MAX - EXPOSURE_MIN, lambda x: None)
 
 # new ROI controls
 cv2.createTrackbar("Use Red ROI", "Tuning", 1, 1, lambda x: None)
@@ -682,6 +727,8 @@ target_state = {
     "target_score": 0.0,
 }
 
+last_exposure_slider = None
+
 while True:
     if USE_TEST_IMAGES:
         frame = cv2.imread(test_images[image_index])
@@ -695,6 +742,14 @@ while True:
             break
 
     H, W = frame.shape[:2]
+
+    # Keep camera in manual exposure mode and apply slider-selected value.
+    if cap is not None:
+        exposure_slider = cv2.getTrackbarPos("Exposure", "Tuning")
+        if exposure_slider != last_exposure_slider:
+            requested_exp = slider_to_exposure(exposure_slider)
+            set_manual_exposure(cap, requested_exp)
+            last_exposure_slider = exposure_slider
 
     # ------- your existing "bright/white-ish" mask -------
     MASK_LOWER = cv2.getTrackbarPos("Mask Lower", "Tuning")
