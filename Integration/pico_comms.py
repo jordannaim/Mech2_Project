@@ -8,6 +8,7 @@ Pi → Pico:
   PITCH <deg> [freq_hz]
   SPIN <t1> <t2>          (DShot throttle 0-2047 each)
   FEED [counts]
+    FEED_MS <milliseconds>
   HOME
   STATUS
   ESTOP
@@ -65,6 +66,7 @@ class PicoComms:
 
         self._status = PicoStatus()
         self._status_lock = threading.Lock()
+        self._last_error_line: Optional[str] = None
 
     # ------------------------------------------------------------------
     # Connection management
@@ -152,6 +154,7 @@ class PicoComms:
             # STATUS is also an ack
             self._ack.set()
         elif line.startswith("ERR"):
+            self._last_error_line = line
             logger.error("Pico error: %s", line)
             self._ack.set()
         else:
@@ -175,7 +178,7 @@ class PicoComms:
     # Internal command sender
     # ------------------------------------------------------------------
 
-    def _send(self, cmd: str, ack_timeout: float = 1.0) -> bool:
+    def _send(self, cmd: str, ack_timeout: float = 1.0, warn_on_timeout: bool = True) -> bool:
         """Send a command line, wait for OK/ACK. Returns True if acked."""
         if not self._serial or not self._serial.is_open:
             logger.error("Serial not open")
@@ -183,6 +186,7 @@ class PicoComms:
 
         with self._send_lock:
             self._ack.clear()
+            self._last_error_line = None
             raw = (cmd.strip() + "\n").encode("ascii")
             try:
                 self._serial.write(raw)
@@ -192,7 +196,12 @@ class PicoComms:
                 return False
 
             if not self._ack.wait(timeout=ack_timeout):
-                logger.warning("No ACK for command: %s", cmd)
+                if warn_on_timeout:
+                    logger.warning("No ACK for command: %s", cmd)
+                return False
+
+            # If Pico acknowledged with ERR, treat command as failed.
+            if self._last_error_line is not None:
                 return False
             return True
 
@@ -200,14 +209,18 @@ class PicoComms:
     # Public API
     # ------------------------------------------------------------------
 
-    def set_yaw_velocity(self, freq_hz: int) -> bool:
+    def set_yaw_velocity(self, freq_hz: int, ack_timeout: float = 0.03) -> bool:
         """
         Run yaw continuously at freq_hz with no step limit.
         Positive = right, negative = left, 0 = stop.
         Non-blocking — no DONE event will be sent by the Pico.
         Used for smooth vision-based alignment.
         """
-        return self._send(f"YAW_VEL {freq_hz}")
+        # YAW_VEL is often used in a tight loop, so keep the default ACK wait
+        # short, but allow callers to request a longer burst-start window.
+        # Don't spam warnings for frequent stop commands while aligning.
+        warn = (ack_timeout >= 0.05) and (freq_hz != 0)
+        return self._send(f"YAW_VEL {freq_hz}", ack_timeout=ack_timeout, warn_on_timeout=warn)
 
     def move_yaw(self, degrees: float, freq_hz: int = 500) -> bool:
         """Start yaw move. Returns True when Pico acknowledges. Non-blocking."""
@@ -267,6 +280,35 @@ class PicoComms:
     def feed_sync(self, counts: Optional[int] = None, timeout: float = 5.0) -> bool:
         """Feed and block until DONE FEED."""
         if not self.feed(counts):
+            return False
+        return self.wait_feed(timeout)
+
+    def feed_time(self, duration_s: float) -> bool:
+        """
+        Trigger feed for a fixed on-time in seconds. Non-blocking after Pico ACK.
+        Requires Pico firmware support for FEED_MS.
+        """
+        self._done_feed.clear()
+        ms = max(1, int(round(duration_s * 1000.0)))
+        if self._send(f"FEED_MS {ms}"):
+            return True
+
+        # Backward compatibility: older firmware may not implement FEED_MS.
+        if self._last_error_line == "ERR unknown_command":
+            # Approximate conversion based on historical default: 200 counts
+            # over ~0.75 s => ~267 counts/s.
+            fallback_counts = max(1, int(round(duration_s * 267.0)))
+            logger.warning(
+                "FEED_MS unsupported by firmware; falling back to FEED %d counts",
+                fallback_counts,
+            )
+            return self.feed(fallback_counts)
+
+        return False
+
+    def feed_time_sync(self, duration_s: float, timeout: float = 5.0) -> bool:
+        """Timed feed and block until DONE FEED."""
+        if not self.feed_time(duration_s):
             return False
         return self.wait_feed(timeout)
 

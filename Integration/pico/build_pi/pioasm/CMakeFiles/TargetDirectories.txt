@@ -1,0 +1,7 @@
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm/CMakeFiles/pioasm.dir
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm/CMakeFiles/edit_cache.dir
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm/CMakeFiles/rebuild_cache.dir
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm/CMakeFiles/list_install_components.dir
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm/CMakeFiles/install.dir
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm/CMakeFiles/install/local.dir
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm/CMakeFiles/install/strip.dir

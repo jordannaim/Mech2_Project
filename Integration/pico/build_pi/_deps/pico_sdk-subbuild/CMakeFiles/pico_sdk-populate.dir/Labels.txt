@@ -1,0 +1,14 @@
+# Target labels
+ pico_sdk-populate
+# Source files and their labels
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/CMakeFiles/pico_sdk-populate
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/CMakeFiles/pico_sdk-populate.rule
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/CMakeFiles/pico_sdk-populate-complete.rule
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-build.rule
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-configure.rule
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-download.rule
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-install.rule
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-mkdir.rule
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-patch.rule
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-test.rule
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-update.rule

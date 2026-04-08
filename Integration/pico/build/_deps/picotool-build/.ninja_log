@@ -1,0 +1,162 @@
+# ninja log v6
+56	915	7966033355468007	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-mkdir	fc1d45ea79115e37
+56	915	7966033355468007	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-mkdir	fc1d45ea79115e37
+266	1058	7966033350501060	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/ecdh.c.obj	83cff9fbdb4d311c
+160	1072	7966033349438731	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/ccm.c.obj	3dc29bbcd18dbc52
+246	1082	7966033350299061	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/des.c.obj	ef3b7c798df02ef6
+36	1091	7966033356929063	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-mkdir	34f64c68b552527c
+36	1091	7966033356929063	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-mkdir	34f64c68b552527c
+222	1117	7966033350057017	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/cmac.c.obj	433a30d3cf6adc26
+178	1130	7966033349612791	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/chachapoly.c.obj	9bbc8788587692b3
+170	1140	7966033349534791	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/chacha20.c.obj	93165cdfc563e4bd
+257	1211	7966033350400025	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/dhm.c.obj	739e6e24d83d0377
+103	1551	7966033348867435	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/aria.c.obj	28e4f25872cb8048
+1072	2086	7966033358551545	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/ecjpake.c.obj	7d824bdffc7d44ca
+93	2147	7966033348777924	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/aesni.c.obj	bf08a94e553d3aa9
+202	2157	7966033349855151	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/cipher_wrap.c.obj	cd548ecd8f510ab5
+212	2193	7966033349956081	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/constant_time.c.obj	3fdb43d79bdb838
+131	2273	7966033349142620	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/base64.c.obj	3a4fa475c7df9106
+74	2425	7966033348573114	errors/CMakeFiles/errors.dir/errors.cpp.obj	656fc56cf335781f
+122	2462	7966033349058585	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/asn1write.c.obj	1387c86efc4b648c
+232	2497	7966033350157943	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/ctr_drbg.c.obj	d7a51fbbdb61531e
+193	2541	7966033349774449	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/cipher.c.obj	57d6b35ffb393900
+113	2609	7966033348963182	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/asn1parse.c.obj	7fdf4ae71cccd9c2
+916	2692	7966033372453649	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-download	9e3258ac787fcab6
+916	2692	7966033372453649	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-download	9e3258ac787fcab6
+1061	2712	7966033358445567	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/ecdsa.c.obj	8c8ed110f57d473d
+1130	2778	7966033359136423	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/entropy.c.obj	4510a620b595f351
+1092	2812	7966033373446099	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-download	92d81b901043ae4
+1092	2812	7966033373446099	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-download	92d81b901043ae4
+151	2867	7966033349350809	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/camellia.c.obj	da741c0b88245da5
+1552	2985	7966033363360596	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/gcm.c.obj	9d6ce77855ae54f4
+2274	3183	7966033370574916	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/memory_buffer_alloc.c.obj	3b621ea5350adb43
+2462	3257	7966033372453649	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/mps_trace.c.obj	859065c3e9f411c6
+2427	3321	7966033372108934	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/mps_reader.c.obj	e08999927a437fc7
+2498	3353	7966033372820163	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/nist_kw.c.obj	a15588c6b47f75d7
+2148	3411	7966033369309609	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/hmac_drbg.c.obj	13160c72ac1523eb
+2086	3623	7966033368703747	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/hkdf.c.obj	a7746d6903ae11aa
+2193	3662	7966033369775668	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/md5.c.obj	7a2a5cbb36c72abb
+2692	3730	7966033382869685	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-update	c8e76bd8065786d
+2692	3730	7966033382869685	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-update	c8e76bd8065786d
+2609	3770	7966033373931091	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/padlock.c.obj	56c612e27fd1c37a
+2813	3787	7966033384115317	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-update	280f6dd9293ddb52
+2813	3787	7966033384115317	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-update	280f6dd9293ddb52
+1211	3848	7966033359951931	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/error.c.obj	298214df6c4d6e4
+83	3918	7966033348674070	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/aes.c.obj	7394e52c9272d64e
+2713	4023	7966033374966645	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/pem.c.obj	a4c4fd6fb05fddaf
+1117	4092	7966033359015438	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/ecp_curves.c.obj	c2c2ca756faf8925
+3662	4298	7966033384458585	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_crypto.c.obj	60401f36fc1a84f4
+3353	4346	7966033381373394	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/platform.c.obj	8028e86ce2be292e
+2778	4357	7966033375626286	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/pk.c.obj	21be97aaa5bd81fe
+3849	4427	7966033386321872	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_crypto_cipher.c.obj	7e9ef894fd4caa33
+2157	4466	7966033369410456	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/md.c.obj	d9e6d77255bb76d2
+3731	4523	7966033391954286	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-patch	744645730e8396ad
+3731	4523	7966033391954286	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-patch	744645730e8396ad
+3787	4540	7966033392211255	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-patch	4e28e3bd041a12fb
+3787	4540	7966033392211255	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-patch	4e28e3bd041a12fb
+3322	4557	7966033381063279	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/pkwrite.c.obj	2e489cd42c48f478
+3770	4602	7966033385548150	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_crypto_aead.c.obj	d8d5f071e76c49bd
+3623	4611	7966033384074966	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/poly1305.c.obj	cd5dfe23fed18ca
+4092	4621	7966033388757195	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_crypto_hash.c.obj	110ae040af35ea13
+3257	4684	7966033380413264	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/pkparse.c.obj	465acc1fe3cac19d
+1082	4694	7966033358652487	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/ecp.c.obj	da4bb408ffb7e784
+4024	4706	7966033388070946	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_crypto_ecp.c.obj	16fc295f4a614c28
+4298	4716	7966033390817205	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_crypto_mac.c.obj	9fdbad3f54590844
+2541	4726	7966033373244277	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/oid.c.obj	276e54b1e81349bc
+4427	4825	7966033392115699	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_crypto_slot_management.c.obj	96898e412631d44d
+4466	4859	7966033392501696	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_crypto_storage.c.obj	31512ca5a1bbd38f
+4357	4903	7966033391407859	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_crypto_se.c.obj	d391aa42dd6f47a5
+4346	4915	7966033391309446	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_crypto_rsa.c.obj	31eb84fff4fec90c
+4558	4931	7966033393405670	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_its_file.c.obj	2cffd9aac2acd660
+4602	5017	7966033393849656	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/ripemd160.c.obj	9bea477f51c3e4c5
+4612	5030	7966033393953510	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/rsa.c.obj	237ef1f0ede2b537
+4706	5177	7966033394909842	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/threading.c.obj	8c3da9f57939533f
+4727	5294	7966033395106476	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/version.c.obj	4e968dc5512e64b0
+4903	5304	7966033396864191	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/rsa_alt_helpers.c.obj	1db69aa67a001551
+4826	5314	7966033396102208	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/version_features.c.obj	206c9b2cb82686d0
+4915	5397	7966033396999564	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/pk_ecc.c.obj	776bc3d6b377ffa1
+141	5544	7966033349243380	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/bignum.c.obj	16578ebda472b1ec
+4694	5703	7966033394780999	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/sha512.c.obj	a7abbbe80d8bf908
+3918	5745	7966033387017384	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/psa_crypto_client.c.obj	c9ad02905bb333e9
+2868	5759	7966033376503361	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/pk_wrap.c.obj	7565ae8830c79c7b
+4684	5799	7966033394680204	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/sha256.c.obj	68e01974a27a4d87
+4622	5800	7966033394054381	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/sha1.c.obj	8f31a85f1729ec2e
+5294	5860	7966033400774010	bintool/CMakeFiles/bintool.dir/mbedtls_wrapper.c.obj	4e0700d5be8793d0
+3183	5993	7966033379666531	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/pkcs5.c.obj	610bf481a9d4026f
+2986	6011	7966033377703543	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/pkcs12.c.obj	c44433e2c121fe74
+4859	6044	7966033396425027	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/bignum_core.c.obj	f9427bd909a62356
+4931	6886	7966033397150872	errors/liberrors.a	65510fd9c331617
+5031	8389	7966033398139071	elf2uf2/CMakeFiles/elf2uf2.dir/elf2uf2.cpp.obj	8ab9fbcf7374c9ea
+3411	9732	7966033381958804	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/platform_util.c.obj	816e3fce147d1f3d
+4716	9741	7966033395005596	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/timing.c.obj	7b8351b398dae220
+1140	9751	7966033359237375	lib/CMakeFiles/mbedtls.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/mbedtls/library/entropy_poll.c.obj	bcbaeb560164dc64
+9751	10271	7966033445302049	lib/libmbedtls.a	24dc3fa57f7e7053
+4523	10728	7966033454920370	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-configure	17820c01e6c07924
+4523	10728	7966033454920370	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-configure	17820c01e6c07924
+4540	10741	7966033455065476	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-configure	4780c7920093beaa
+4540	10741	7966033455065476	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-configure	4780c7920093beaa
+10728	10826	7966033455082858	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-build	ade31ed7978368c
+10728	10826	7966033455082858	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-build	ade31ed7978368c
+10741	10844	7966033455245107	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-build	b1e6d5bcaa8150cd
+10741	10844	7966033455245107	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-build	b1e6d5bcaa8150cd
+10826	10900	7966033456071818	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-install	662a43cf7916bdff
+10826	10900	7966033456071818	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-install	662a43cf7916bdff
+10844	10916	7966033456265649	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-install	72208a2db313a9af
+10844	10916	7966033456265649	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-install	72208a2db313a9af
+10900	11063	7966033458308150	CMakeFiles/enc_bootloader_mbedtls-complete	df8e250e8fc3ae0
+10900	11063	7966033458308150	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-done	df8e250e8fc3ae0
+10900	11063	7966033458308150	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/CMakeFiles/enc_bootloader_mbedtls-complete	df8e250e8fc3ae0
+10900	11063	7966033458308150	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-done	df8e250e8fc3ae0
+10916	11078	7966033458460119	CMakeFiles/enc_bootloader-complete	a53961499f5df70
+10916	11078	7966033458460119	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-done	a53961499f5df70
+10916	11078	7966033458460119	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/CMakeFiles/enc_bootloader-complete	a53961499f5df70
+10916	11078	7966033458460119	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-done	a53961499f5df70
+11079	11486	7966033462479840	enc_bootloader_elf.h	3305f8ef7076b2ae
+11079	11486	7966033462479840	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_elf.h	3305f8ef7076b2ae
+11094	11656	7966033464233033	enc_bootloader_mbedtls_elf.h	ed76a64bad3ad960
+11094	11656	7966033464233033	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls_elf.h	ed76a64bad3ad960
+93	222	7966033514149826	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-build	b1e6d5bcaa8150cd
+93	222	7966033514149826	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-build	b1e6d5bcaa8150cd
+118	238	7966033514397720	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-build	ade31ed7978368c
+118	238	7966033514397720	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-build	ade31ed7978368c
+238	326	7966033515601204	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-install	662a43cf7916bdff
+238	326	7966033515601204	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-install	662a43cf7916bdff
+222	340	7966033515400584	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-install	72208a2db313a9af
+222	340	7966033515400584	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-install	72208a2db313a9af
+326	485	7966033517973374	CMakeFiles/enc_bootloader_mbedtls-complete	df8e250e8fc3ae0
+326	485	7966033517973374	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-done	df8e250e8fc3ae0
+326	485	7966033517973374	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/CMakeFiles/enc_bootloader_mbedtls-complete	df8e250e8fc3ae0
+326	485	7966033517973374	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-done	df8e250e8fc3ae0
+340	500	7966033518055959	CMakeFiles/enc_bootloader-complete	a53961499f5df70
+340	500	7966033518055959	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-done	a53961499f5df70
+340	500	7966033518055959	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/CMakeFiles/enc_bootloader-complete	a53961499f5df70
+340	500	7966033518055959	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-done	a53961499f5df70
+501	1309	7966033518219601	CMakeFiles/picotool.dir/data_locs.cpp.obj	d0da612c0443d8e3
+528	1820	7966033518504623	CMakeFiles/picotool.dir/lib/whereami/whereami.c.obj	93885e23cf50c195
+507	2388	7966033518219601	CMakeFiles/picotool.dir/get_enc_bootloader.cpp.obj	ecb64fa40c9487dd
+538	2940	7966033518541731	CMakeFiles/picotool.dir/lib/whereami/whereami++.cpp.obj	e1318c55a445bb56
+513	3756	7966033518302357	CMakeFiles/picotool.dir/no_otp.cpp.obj	2783cfdc44a322ad
+135	4599	7966033514563016	elf/CMakeFiles/elf.dir/elf_file.cpp.obj	ce116cf1e7c4b028
+4599	4751	7966033559165936	elf/libelf.a	c55746559df508fc
+4752	4942	7966033560747350	elf2uf2/libelf2uf2.a	9bf5b36d520c8cb4
+144	7178	7966033514644593	bintool/CMakeFiles/bintool.dir/bintool.cpp.obj	a87981d71b633842
+7178	7360	7966033584969055	bintool/libbintool.a	bb6f121333e977d0
+521	33601	7966033518424627	CMakeFiles/picotool.dir/main.cpp.obj	77d81b7c77bb5e42
+33602	34334	7966033849212422	picotool.exe	eb3553d7f5ad3664
+76	188	7966033858050583	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-build	b1e6d5bcaa8150cd
+76	188	7966033858050583	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-build	b1e6d5bcaa8150cd
+95	209	7966033858232814	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-build	ade31ed7978368c
+95	209	7966033858232814	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-build	ade31ed7978368c
+189	250	7966033859189737	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-install	72208a2db313a9af
+189	250	7966033859189737	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-install	72208a2db313a9af
+209	271	7966033859352689	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-install	662a43cf7916bdff
+209	271	7966033859352689	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-install	662a43cf7916bdff
+250	394	7966033861143490	CMakeFiles/enc_bootloader-complete	a53961499f5df70
+250	394	7966033861143490	enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-done	a53961499f5df70
+250	394	7966033861143490	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/CMakeFiles/enc_bootloader-complete	a53961499f5df70
+250	394	7966033861143490	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/src/enc_bootloader-stamp/enc_bootloader-done	a53961499f5df70
+271	414	7966033861306542	CMakeFiles/enc_bootloader_mbedtls-complete	df8e250e8fc3ae0
+271	414	7966033861306542	enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-done	df8e250e8fc3ae0
+271	414	7966033861306542	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/CMakeFiles/enc_bootloader_mbedtls-complete	df8e250e8fc3ae0
+271	414	7966033861306542	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader_mbedtls/src/enc_bootloader_mbedtls-stamp/enc_bootloader_mbedtls-done	df8e250e8fc3ae0
+414	1112	7966033861448986	CMakeFiles/install.util	45b107f913458a23

@@ -1,0 +1,24 @@
+.program dshot
+
+.side_set 1 opt
+
+; DShot protocol implementation
+; Each bit period is 12 cycles total
+; 0 bit: ~33% duty cycle (4 cycles high, 8 cycles low)
+; 1 bit: ~75% duty cycle (9 cycles high, 3 cycles low)
+
+.wrap_target
+    pull block          side 0      ; Pull data from TX FIFO, drive pin low
+    set x, 15           side 0      ; Set counter to 15 (16 bits total)
+bitloop:
+    out y, 1            side 1      ; Shift out one bit to Y, start pulse (pin high) - cycle 1
+    jmp !y, send_zero   side 1      ; If bit is 0, jump to send_zero - cycle 2
+send_one:
+    nop                 side 1 [6]  ; For '1': stay high (cycles 3-9, total 9 cycles high)
+    jmp bitdone         side 0 [1]  ; Go low (cycles 10-12, total 3 cycles low)
+send_zero:
+    nop                 side 1 [1]  ; For '0': stay high (cycles 3-4, total 4 cycles high)
+    nop                 side 0 [6]  ; Go low (cycles 5-12, total 8 cycles low)
+bitdone:
+    jmp x--, bitloop    side 0      ; Decrement X and loop if not done
+.wrap

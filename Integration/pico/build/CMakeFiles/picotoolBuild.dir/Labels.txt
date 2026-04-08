@@ -1,0 +1,14 @@
+# Target labels
+ picotoolBuild
+# Source files and their labels
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/CMakeFiles/picotoolBuild
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/CMakeFiles/picotoolBuild.rule
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/CMakeFiles/picotoolBuild-complete.rule
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-build.rule
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-configure.rule
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-download.rule
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-install.rule
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-mkdir.rule
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-patch.rule
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-test.rule
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-update.rule

@@ -1,0 +1,7 @@
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pioasm/CMakeFiles/pioasm.dir
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pioasm/CMakeFiles/edit_cache.dir
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pioasm/CMakeFiles/rebuild_cache.dir
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pioasm/CMakeFiles/list_install_components.dir
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pioasm/CMakeFiles/install.dir
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pioasm/CMakeFiles/install/local.dir
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pioasm/CMakeFiles/install/strip.dir

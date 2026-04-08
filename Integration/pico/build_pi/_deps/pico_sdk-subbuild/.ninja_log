@@ -1,0 +1,21 @@
+# ninja log v6
+1	41	1775260756139040054	pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-mkdir	6a91a50e4dd491b1
+1	41	1775260756139040054	/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-mkdir	6a91a50e4dd491b1
+41	69267	1775260825367260435	pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-download	5b730a5b811668be
+41	69267	1775260825367260435	/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-download	5b730a5b811668be
+69267	69288	1775260825367260435	pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-update	56dc584fcf1ab8f1
+69267	69288	1775260825367260435	/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-update	56dc584fcf1ab8f1
+69289	69312	1775260825411260577	pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-patch	e0aaefe2d907842
+69289	69312	1775260825411260577	/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-patch	e0aaefe2d907842
+69312	69336	1775260825435260654	pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-configure	98f9dea2ce93c006
+69312	69336	1775260825435260654	/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-configure	98f9dea2ce93c006
+69337	69359	1775260825459260731	pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-build	2ca6e9ffa060cfd4
+69337	69359	1775260825459260731	/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-build	2ca6e9ffa060cfd4
+69359	69383	1775260825483260809	pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-install	91c090d59f02227f
+69359	69383	1775260825483260809	/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-install	91c090d59f02227f
+69383	69407	1775260825507260886	pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-test	9b2514679bb83f4d
+69383	69407	1775260825507260886	/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-test	9b2514679bb83f4d
+69407	69445	1775260825547261015	CMakeFiles/pico_sdk-populate-complete	c2d34db64bd4afd6
+69407	69445	1775260825547261015	pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-done	c2d34db64bd4afd6
+69407	69445	1775260825547261015	/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/CMakeFiles/pico_sdk-populate-complete	c2d34db64bd4afd6
+69407	69445	1775260825547261015	/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/pico_sdk-populate-prefix/src/pico_sdk-populate-stamp/pico_sdk-populate-done	c2d34db64bd4afd6

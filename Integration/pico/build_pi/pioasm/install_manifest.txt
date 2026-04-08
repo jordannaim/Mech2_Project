@@ -1,0 +1,5 @@
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm-install/pioasm/pioasm
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm-install/pioasm/pioasmTargets.cmake
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm-install/pioasm/pioasmTargets-release.cmake
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm-install/pioasm/pioasmConfig.cmake
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/pioasm-install/pioasm/pioasmConfigVersion.cmake

@@ -34,38 +34,65 @@ logger = logging.getLogger(__name__)
 CAMERA_HFOV_DEG = 60.0      # horizontal field of view of the camera
 CAMERA_VFOV_DEG = 40.0      # vertical field of view
 
-YAW_VEL_KP             = 400    # proportional gain: maps |error| (0-1) to step freq (Hz)
-YAW_VEL_MIN_HZ         = 80     # minimum frequency sent — below this the stepper stalls
-YAW_VEL_MAX_HZ         = 500    # maximum frequency during alignment
+YAW_VEL_KP             = 24  # proportional gain: maps |error| (0-1) to step freq (Hz)
+YAW_VEL_KI             = 0.6 # integral gain: trims residual bias and steady-state error
+YAW_VEL_MIN_HZ         = 35     # baseline minimum frequency sent
+YAW_VEL_MAX_HZ         = 200    # cap max frequency to reduce camera shake [REDUCED]
 YAW_ALIGN_LOOP_S       = 0.05   # control loop period (20 Hz) — must be < one camera frame
-YAW_VEL_ACCEL_HZ_PER_S = 2000  # Pi-side ramp rate: 0 → 400 Hz in 0.2 s
+YAW_VEL_ACCEL_HZ_PER_S = 450    # gentler acceleration/deceleration for smoother motion
+YAW_VEL_DECEL_HZ_PER_S = 1400   # brake faster than accelerate to stop on target
+YAW_ERROR_ALPHA        = 0.50   # EMA smoothing for x-error (lower = smoother) [INCREASED]
+YAW_I_ACTIVE_BAND      = 0.35   # only integrate when |error| is inside this band (anti-windup)
+YAW_I_MAX              = 0.25   # clamp integral state (error*s)
+YAW_STARTUP_FRAMES     = 4      # first valid frames use conservative speed cap
+YAW_STARTUP_MAX_HZ     = 45     # startup cap so first movement is confident, not a jump
+YAW_NEAR_CENTER_BAND   = 0.05   # use gentler minimum speed near center to avoid ping-pong
+YAW_NEAR_CENTER_MIN_HZ = 3      # very slow final creep near center
+YAW_BRAKE_BAND         = 0.12   # begin explicit braking earlier to stop before center
+YAW_BRAKE_MAX_HZ       = 10     # cap speed in brake band to avoid sailing past center
+YAW_STOP_BAND          = 0.15   # if prediction says we'll cross within this band, stop now
+YAW_CROSS_DAMP         = 0.55   # damp command right after crossing centerline
+YAW_LOOKAHEAD_S        = 0.12   # predictive lead time to compensate vision/control latency
+YAW_FRAME_STALE_S      = 0.14   # hold motion if newest frame is older than this
+YAW_PRED_MIX           = 0.60   # blend predicted error into control error (0..1)
+YAW_SETTLE_VERIFY_S    = 0.20   # verify the turret stays centered after stopping
+YAW_SETTLE_VERIFY_FRAMES = 3    # consecutive centered frames required after stop
+YAW_LOST_GRACE_FRAMES  = 3      # tolerate brief vision dropouts before aborting align
+YAW_EDGE_ABORT_NORM    = 0.92   # stop if target reaches frame edge and command pushes outward
 YAW_COARSE_FREQ_HZ = 600    # step freq for large non-vision moves
 PITCH_FREQ_HZ      = 400    # step freq for pitch moves
+STEPPER_STEP_ANGLE_DEG = 1.8/8  # must match Pico firmware step angle
+YAW_LOST_SEARCH_S       = 1.25   # keep searching through temporary vision dropouts
 
-YAW_DEAD_ZONE   = 0.04      # |x_norm - aim_offset| below this = centered enough to fire
-MIN_CONFIDENCE  = 0.70      # minimum detection confidence to attempt a shot
+# Pitch debug/fallback behavior while uncalibrated or on mixed firmware.
+PITCH_ENABLE_MOTION = False           # keep False until pitch is calibrated
+PITCH_ALLOW_FIRE_WITHOUT_MOVE = True  # still allow feed/fire when pitch move is skipped/fails
+PITCH_LEGACY_STEP_ANGLE_DEG = 1.8     # fallback if Pico is still on full-step firmware
+PITCH_FALLBACK_FREQ_HZ = 250          # slower retry frequency for fallback moves
 
-# Camera is mounted 4 inches (0.1016 m) to the RIGHT of the shooter centerline.
+YAW_DEAD_ZONE   = 0.04     # |x_norm - aim_offset| below this = centered enough to fire
+MIN_CONFIDENCE  = 0.7       # minimum detection confidence to attempt a shot
+AIM_OFFSET_SCALE = 1     # scale camera-to-shooter x offset compensation [REDUCED]
+AIM_OFFSET_MAX   = 0.00     # clamp |aim offset| so alignment doesn't run off-frame
+
+# Camera is mounted 2.2 inches (0.0559 m) to the RIGHT of the shooter centerline.
 # The aim offset in x_norm is distance-dependent: use _compute_aim_offset(distance_m).
-CAMERA_X_OFFSET_M = 0.064
+CAMERA_X_OFFSET_M = 0
 
-FLYWHEEL_THROTTLE  = 195    # DShot throttle while shooting — tested range is 180-210;
-                             # above 210 overshoots the table at full distance.
-FLYWHEEL_SPINUP_S  = 2.0    # seconds to wait after SPIN command before feeding
+FLYWHEEL_THROTTLE_1 = 200   # DShot throttle for flywheel 1 (0-2047)
+FLYWHEEL_THROTTLE_2 = 200   # DShot throttle for flywheel 2 (0-2047)
+FLYWHEEL_SPINUP_S  = 3.0    # seconds to wait after SPIN command before feeding
+FEED_ON_TIME_S     = 0.75    # feed motor on-time per shot (seconds)
 
-# Empirical trajectory table: distance_m → (pitch_elevation_deg, dshot_throttle)
-# Positive pitch = elevate upward.
-# Throttle column is flat at ~195 for now (the tested working range is 180-210).
-# Pitch angles are placeholders — calibrate empirically once the feed motor is
-# attached: shoot at each distance, record the pitch that lands in the cup.
-TRAJECTORY_TABLE: dict[float, Tuple[float, int]] = {
-    0.8: (3.0,  180),
-    1.0: (5.0,  185),
-    1.5: (8.0,  190),
-    2.0: (12.0, 195),
-    2.5: (15.0, 200),
-    3.0: (18.0, 205),
-    3.5: (21.0, 210),
+# Empirical trajectory table: distance_m → (pitch_elevation_deg, dshot_throttle_1, dshot_throttle_2)
+# Positive pitch = elevate upward.  Add entries as you calibrate.
+TRAJECTORY_TABLE: dict[float, Tuple[float, int, int]] = {
+    1.4: (5.0,  188, 246),
+    1.6: (8.0,  190, 255),
+    1.8: (12.0, 195, 260),
+    1.9: (15.0, 205, 265),
+    2.0: (18.0, 210, 270),
+    
 }
 
 
@@ -73,10 +100,10 @@ TRAJECTORY_TABLE: dict[float, Tuple[float, int]] = {
 # Helpers
 # ---------------------------------------------------------------------------
 
-def interpolate_trajectory(distance_m: float) -> Tuple[float, int]:
+def interpolate_trajectory(distance_m: float) -> Tuple[float, int, int]:
     """
     Linear interpolation over TRAJECTORY_TABLE.
-    Returns (pitch_deg, dshot_throttle). Clamps to table bounds.
+    Returns (pitch_deg, dshot_throttle_1, dshot_throttle_2). Clamps to table bounds.
     """
     keys = sorted(TRAJECTORY_TABLE.keys())
     if not keys:
@@ -91,11 +118,12 @@ def interpolate_trajectory(distance_m: float) -> Tuple[float, int]:
         lo, hi = keys[i], keys[i + 1]
         if lo <= distance_m <= hi:
             t = (distance_m - lo) / (hi - lo)
-            p_lo, s_lo = TRAJECTORY_TABLE[lo]
-            p_hi, s_hi = TRAJECTORY_TABLE[hi]
+            p_lo, s1_lo, s2_lo = TRAJECTORY_TABLE[lo]
+            p_hi, s1_hi, s2_hi = TRAJECTORY_TABLE[hi]
             pitch = p_lo + t * (p_hi - p_lo)
-            throttle = int(round(s_lo + t * (s_hi - s_lo)))
-            return pitch, throttle
+            throttle1 = int(round(s1_lo + t * (s1_hi - s1_lo)))
+            throttle2 = int(round(s2_lo + t * (s2_hi - s2_lo)))
+            return pitch, throttle1, throttle2
 
     return TRAJECTORY_TABLE[keys[-1]]  # unreachable but satisfies type checker
 
@@ -116,7 +144,8 @@ def _compute_aim_offset(distance_m: float) -> float:
         return 0.0
     theta = math.atan(CAMERA_X_OFFSET_M / distance_m)
     hfov_rad = math.radians(CAMERA_HFOV_DEG)
-    return -theta / (hfov_rad / 2.0)
+    raw = -theta / (hfov_rad / 2.0)
+    return float(max(-AIM_OFFSET_MAX, min(AIM_OFFSET_MAX, raw * AIM_OFFSET_SCALE)))
 
 
 # ---------------------------------------------------------------------------
@@ -148,10 +177,14 @@ class TurretController:
             logger.error("HOME command failed")
         return ok
 
-    def arm(self, throttle: int = FLYWHEEL_THROTTLE) -> bool:
+    def arm(
+        self,
+        throttle1: int = FLYWHEEL_THROTTLE_1,
+        throttle2: int = FLYWHEEL_THROTTLE_2,
+    ) -> bool:
         """Spin up flywheels and wait for them to reach speed."""
-        logger.info("Spinning up flywheels (throttle=%d)…", throttle)
-        ok = self.pico.set_spin(throttle, throttle)
+        logger.info("Spinning up flywheels (throttle1=%d throttle2=%d)…", throttle1, throttle2)
+        ok = self.pico.set_spin(throttle1, throttle2)
         if not ok:
             logger.error("SPIN command failed")
             return False
@@ -178,101 +211,203 @@ class TurretController:
     # Aiming
     # ------------------------------------------------------------------
 
-    def align_yaw(self, timeout: float = 5.0) -> bool:
+    def align_yaw(self, timeout: float = 8.0) -> bool:
         """
-        Smoothly align yaw using continuous proportional velocity control with
-        Pi-side acceleration ramping.
-
-        Streams YAW_VEL commands to the Pico at ~20 Hz. Speed is proportional
-        to |error|. The commanded frequency is ramped toward the proportional
-        target each loop — no sudden jumps from 0 to full speed. The Pico also
-        applies its own 1 ms ramp on top of this for the smoothest possible motion.
-
-        Converges when |error| < YAW_DEAD_ZONE for two consecutive frames and
-        the commanded velocity has wound back to zero.
-
-        Returns True if converged within timeout, False if target lost or timed out.
+        Stepwise predictive align: move a small chunk, re-detect, shrink the
+        chunk as the target gets closer to center, and only declare success
+        after the centered cup stays centered for a short settle window.
         """
         deadline = time.monotonic() + timeout
-        consecutive_centered = 0
-        current_hz = 0.0
-        max_hz_step = YAW_VEL_ACCEL_HZ_PER_S * YAW_ALIGN_LOOP_S  # Hz change per loop
+        locked_here = False
 
-        while time.monotonic() < deadline:
-            result = self.detector.get_result()
-
-            if not result.valid or result.confidence < MIN_CONFIDENCE:
-                self.pico.set_yaw_velocity(0)
-                logger.warning("align_yaw: lost target (valid=%s conf=%.2f)",
-                               result.valid, result.confidence)
+        # For manual 'align', lock a specific cup first so target identity does
+        # not switch frame-to-frame.
+        if not self.detector.is_target_locked():
+            seed = self.detector.get_result()
+            if not seed.valid or seed.confidence < MIN_CONFIDENCE:
+                logger.warning("align_yaw: no valid target to lock")
                 return False
+            self.detector.lock_target(seed.x_norm, seed.y_norm)
+            locked_here = True
 
-            aim_offset = _compute_aim_offset(result.distance_m)
-            error = result.x_norm - aim_offset
+        # Debug mode: try the smallest practical correction first using a
+        # timed velocity burst, then re-detect after each burst.
+        chunk_steps = 1
+        chunk_deg = chunk_steps * STEPPER_STEP_ANGLE_DEG
+        burst_freq_hz = 20
+        burst_pulses = 1
+        post_align_backstep_bursts = 2  # send this many reverse bursts after align, then stop
+        settle_frames_needed = 3
+        settle_timeout_s = 0.20
 
-            if abs(error) < YAW_DEAD_ZONE:
-                consecutive_centered += 1
-                target_hz = 0.0
-                # On the first dead-zone entry the motor is still spinning down.
-                # Insert an extra settle wait so the confirmation frame is read
-                # after the camera has stopped vibrating.
-                if consecutive_centered == 1:
+        try:
+            settle_frames = 0
+            last_direction = 0
+
+            while time.monotonic() < deadline:
+                result = self.detector.get_result()
+
+                if not result.valid or result.confidence < MIN_CONFIDENCE:
                     time.sleep(YAW_ALIGN_LOOP_S)
-            else:
-                consecutive_centered = 0
-                speed = min(YAW_VEL_MAX_HZ, max(YAW_VEL_MIN_HZ,
-                            YAW_VEL_KP * abs(error)))
-                target_hz = speed if error > 0 else -speed
+                    continue
 
-            # Ramp current_hz toward target — limits acceleration at start/stop
-            diff = target_hz - current_hz
-            if abs(diff) <= max_hz_step:
-                current_hz = target_hz
-            else:
-                current_hz += math.copysign(max_hz_step, diff)
+                aim_offset = _compute_aim_offset(result.distance_m)
+                error = result.x_norm - aim_offset
 
-            self.pico.set_yaw_velocity(int(round(current_hz)))
+                if abs(error) < YAW_DEAD_ZONE:
+                    settle_frames += 1
+                    if settle_frames < settle_frames_needed:
+                        time.sleep(YAW_ALIGN_LOOP_S)
+                        continue
 
-            # Declare aligned only once we've centered AND wound fully to a stop
-            if consecutive_centered >= 2 and abs(current_hz) < 1.0:
-                self.pico.set_yaw_velocity(0)
-                logger.info("Yaw aligned (x_norm=%.4f aim_offset=%.4f error=%.4f)",
-                            result.x_norm, aim_offset, error)
-                return True
+                    settle_deadline = time.monotonic() + settle_timeout_s
+                    stable_count = 0
+                    while time.monotonic() < settle_deadline:
+                        time.sleep(YAW_ALIGN_LOOP_S)
+                        verify = self.detector.get_result()
+                        if not verify.valid or verify.confidence < MIN_CONFIDENCE:
+                            stable_count = 0
+                            continue
+                        verify_error = verify.x_norm - _compute_aim_offset(verify.distance_m)
+                        if abs(verify_error) < YAW_DEAD_ZONE:
+                            stable_count += 1
+                            if stable_count >= settle_frames_needed:
+                                # Optional post-align correction: move back one burst
+                                # opposite the last approach direction, then stop.
+                                if post_align_backstep_bursts > 0 and last_direction != 0:
+                                    reverse_hz = -last_direction * burst_freq_hz
+                                    reverse_duration_s = max(0.018, min(0.030, burst_pulses / float(burst_freq_hz)))
+                                    for _ in range(post_align_backstep_bursts):
+                                        if not self.pico.set_yaw_velocity(reverse_hz, ack_timeout=0.15):
+                                            logger.warning("align_yaw: failed to apply post-align reverse burst")
+                                            break
+                                        time.sleep(reverse_duration_s)
+                                        self.pico.set_yaw_velocity(0, ack_timeout=0.05)
+                                        time.sleep(YAW_ALIGN_LOOP_S)
+                                logger.info(
+                                    "Yaw aligned (x_norm=%.4f error=%.4f)",
+                                    verify.x_norm,
+                                    verify_error,
+                                )
+                                return True
+                        else:
+                            stable_count = 0
 
-            time.sleep(YAW_ALIGN_LOOP_S)
+                    settle_frames = 0
+                    last_direction = 0
+                    continue
 
-        self.pico.set_yaw_velocity(0)
-        logger.warning("align_yaw: timed out after %.1fs", timeout)
-        return False
+                settle_frames = 0
+
+                error_deg = error * (CAMERA_HFOV_DEG / 2.0)
+                abs_error_deg = abs(error_deg)
+                direction = 1 if error_deg > 0 else -1
+
+                # If we crossed the center since the last step, stop and let
+                # the detector measure the new position before doing anything else.
+                if last_direction != 0 and direction != last_direction and abs_error_deg <= 1.0:
+                    self.pico.set_yaw_velocity(0)
+                    time.sleep(YAW_ALIGN_LOOP_S)
+                    last_direction = direction
+                    continue
+
+                last_direction = direction
+
+                cmd_deg = chunk_deg * direction
+                logger.debug(
+                    "align_yaw step: error_deg=%.3f cmd_deg=%.3f",
+                    error_deg,
+                    cmd_deg,
+                )
+
+                # One pulse at the chosen frequency is the smallest meaningful
+                # motion in velocity mode.
+                burst_duration_s = max(0.018, min(0.030, burst_pulses / float(burst_freq_hz)))
+                burst_hz = burst_freq_hz * direction
+                logger.debug(
+                    "align_yaw burst: error_deg=%.3f cmd_deg=%.3f burst_hz=%d duration=%.3f pulses=%d",
+                    error_deg,
+                    cmd_deg,
+                    burst_hz,
+                    burst_duration_s,
+                    burst_pulses,
+                )
+
+                if not self.pico.set_yaw_velocity(burst_hz, ack_timeout=0.15):
+                    logger.warning("align_yaw: failed to start yaw burst")
+                    return False
+
+                time.sleep(burst_duration_s)
+                self.pico.set_yaw_velocity(0, ack_timeout=0.05)
+
+                # Let the camera thread update before measuring the next chunk.
+                time.sleep(YAW_ALIGN_LOOP_S)
+
+            logger.warning("align_yaw: timed out after %.1fs", timeout)
+            return False
+        finally:
+            if locked_here:
+                self.detector.unlock_target()
 
     def set_pitch_for_distance(self, distance_m: float, timeout: float = 8.0) -> bool:
         """
         Look up pitch elevation angle for the given distance, compute delta
         from current position, and send the PITCH command.
         """
-        target_pitch, throttle = interpolate_trajectory(distance_m)
+        target_pitch, throttle1, throttle2 = interpolate_trajectory(distance_m)
         delta_deg = target_pitch - self._current_pitch_deg
 
         logger.info(
-            "set_pitch: dist=%.2fm → target_pitch=%.1f° (delta=%.1f°) throttle=%d",
-            distance_m, target_pitch, delta_deg, throttle,
+            "set_pitch: dist=%.2fm → target_pitch=%.1f° (delta=%.1f°) throttle1=%d throttle2=%d",
+            distance_m, target_pitch, delta_deg, throttle1, throttle2,
         )
 
         # Update flywheel speed to match distance if armed
         if self._armed:
-            self.pico.set_spin(throttle, throttle)
+            self.pico.set_spin(throttle1, throttle2)
 
-        if abs(delta_deg) < 0.5:
-            logger.debug("Pitch delta too small (%.2f°), skipping move", delta_deg)
+        if not PITCH_ENABLE_MOTION:
+            logger.warning(
+                "set_pitch: motion bypassed (PITCH_ENABLE_MOTION=False) — using current pitch %.2f°",
+                self._current_pitch_deg,
+            )
             return True
 
-        ok = self.pico.move_pitch_sync(delta_deg, PITCH_FREQ_HZ, timeout)
+        # Quantize to whole stepper steps so we never send a zero-step move,
+        # which Pico reports as ERR stepper_config_failed.
+        delta_steps = int(round(delta_deg / STEPPER_STEP_ANGLE_DEG))
+        cmd_delta_deg = delta_steps * STEPPER_STEP_ANGLE_DEG
+
+        if delta_steps == 0:
+            logger.debug(
+                "Pitch delta %.2f° rounds to 0 steps (step=%.1f°), skipping move",
+                delta_deg,
+                STEPPER_STEP_ANGLE_DEG,
+            )
+            return True
+
+        ok = self.pico.move_pitch_sync(cmd_delta_deg, PITCH_FREQ_HZ, timeout)
         if ok:
-            self._current_pitch_deg = target_pitch
-        else:
-            logger.error("Pitch move failed or timed out")
-        return ok
+            self._current_pitch_deg += cmd_delta_deg
+            return True
+
+        # Fallback: if Pico is still running old full-step firmware, retry with
+        # full-step quantization so command is always representable.
+        legacy_steps = int(round(delta_deg / PITCH_LEGACY_STEP_ANGLE_DEG))
+        legacy_cmd_deg = legacy_steps * PITCH_LEGACY_STEP_ANGLE_DEG
+        if legacy_steps != 0:
+            logger.warning(
+                "set_pitch: retrying with legacy step angle %.3f° (cmd=%.2f°)",
+                PITCH_LEGACY_STEP_ANGLE_DEG,
+                legacy_cmd_deg,
+            )
+            ok_legacy = self.pico.move_pitch_sync(legacy_cmd_deg, PITCH_FALLBACK_FREQ_HZ, timeout)
+            if ok_legacy:
+                self._current_pitch_deg += legacy_cmd_deg
+                return True
+
+        logger.error("Pitch move failed or timed out")
+        return False
 
     # ------------------------------------------------------------------
     # Fire sequence
@@ -292,25 +427,46 @@ class TurretController:
             logger.warning("fire_sequence: not armed — call arm() first")
             return False
 
-        # Initial detection check
-        result = self.detector.get_result()
+        # Initial detection check + lock this exact cup for the whole shot.
+        # Wait briefly for a fresh valid frame so the selected target is stable.
+        result = DetectionResult(valid=False)
+        acquire_deadline = time.monotonic() + 0.8
+        while time.monotonic() < acquire_deadline:
+            result = self.detector.get_result()
+            if result.valid and result.confidence >= MIN_CONFIDENCE:
+                break
+            time.sleep(0.05)
+
         if not result.valid or result.confidence < MIN_CONFIDENCE:
             logger.warning("fire_sequence: no valid target (conf=%.2f)", result.confidence)
             return False
 
-        # Lock onto this cup for the entire shot — prevents the detector from
-        # jumping to a different cup mid-alignment.
         self.detector.lock_target(result.x_norm, result.y_norm)
+        logger.info(
+            "fire_sequence: selected target x=%.3f y=%.3f conf=%.2f",
+            result.x_norm,
+            result.y_norm,
+            result.confidence,
+        )
+
         try:
-            # Align yaw
+            # Align yaw while vision is locked to the selected cup.
             if not self.align_yaw():
                 logger.warning("fire_sequence: yaw alignment failed")
                 return False
 
-            # Fresh detection after alignment
-            time.sleep(0.1)
-            result = self.detector.get_result()
-            if not result.valid:
+            # Fresh detection after alignment (still locked to same cup).
+            # Give the camera a short window to settle so a brief dropout does
+            # not cancel an otherwise successful alignment.
+            result = DetectionResult(valid=False)
+            settle_deadline = time.monotonic() + 0.75
+            while time.monotonic() < settle_deadline:
+                time.sleep(0.05)
+                result = self.detector.get_result()
+                if result.valid and result.confidence >= MIN_CONFIDENCE:
+                    break
+
+            if not result.valid or result.confidence < MIN_CONFIDENCE:
                 logger.warning("fire_sequence: lost target after yaw alignment")
                 return False
 
@@ -319,21 +475,24 @@ class TurretController:
                 logger.warning("fire_sequence: invalid distance estimate %.2fm", distance_m)
                 return False
 
-            logger.info("fire_sequence: distance=%.2fm", distance_m)
+            logger.info("fire_sequence: locked-target distance=%.2fm", distance_m)
 
             # Set pitch
             if not self.set_pitch_for_distance(distance_m):
-                logger.warning("fire_sequence: pitch set failed")
-                return False
+                if PITCH_ALLOW_FIRE_WITHOUT_MOVE:
+                    logger.warning("fire_sequence: pitch set failed — continuing without pitch move")
+                else:
+                    logger.warning("fire_sequence: pitch set failed")
+                    return False
 
-            # Fire
-            logger.info("Firing!")
-            ok = self.pico.feed_sync(timeout=5.0)
+            # Fire (timed feed)
+            logger.info("Firing! feed_on_time=%.3fs", FEED_ON_TIME_S)
+            ok = self.pico.feed_time_sync(duration_s=FEED_ON_TIME_S, timeout=5.0)
             if not ok:
                 logger.error("Feed timed out or failed")
             return ok
         finally:
-            # Always release the lock so the next shot can pick a fresh target
+            # Always release lock so next shot can pick a new cup.
             self.detector.unlock_target()
 
     # ------------------------------------------------------------------
@@ -392,7 +551,7 @@ def _run_auto(args: argparse.Namespace) -> None:
     ctrl = TurretController(pico, detector)
     try:
         ctrl.home()
-        ctrl.arm(throttle=args.throttle)
+        ctrl.arm(throttle1=args.throttle1, throttle2=args.throttle2)
         ctrl.run_auto(shots=args.shots, delay_between_shots=args.delay)
     except KeyboardInterrupt:
         logger.info("Interrupted")
@@ -432,12 +591,12 @@ def _run_manual(args: argparse.Namespace) -> None:
 
     print("Manual control shell. Commands:")
     print("  home          — zero counters")
-    print("  arm [t]       — spin up flywheels (default throttle=800)")
+    print("  arm [t1] [t2] — spin up flywheels (defaults from constants)")
     print("  disarm        — stop flywheels")
     print("  yaw <deg>     — move yaw")
     print("  pitch <deg>   — move pitch")
+    print("  feed <ms>     — feed motor timed (milliseconds)")
     print("  align         — auto-align yaw to cup")
-    print("  feed [n]      — run feed motor n encoder counts (default 200)")
     print("  fire          — full fire sequence")
     print("  status        — query Pico status")
     print("  detect        — print latest detection")
@@ -461,8 +620,16 @@ def _run_manual(args: argparse.Namespace) -> None:
             elif cmd == "home":
                 ctrl.home()
             elif cmd == "arm":
-                t = int(parts[1]) if len(parts) > 1 else FLYWHEEL_THROTTLE
-                ctrl.arm(t)
+                if len(parts) > 2:
+                    t1 = int(parts[1])
+                    t2 = int(parts[2])
+                elif len(parts) > 1:
+                    t1 = int(parts[1])
+                    t2 = t1
+                else:
+                    t1 = FLYWHEEL_THROTTLE_1
+                    t2 = FLYWHEEL_THROTTLE_2
+                ctrl.arm(t1, t2)
             elif cmd == "disarm":
                 ctrl.disarm()
             elif cmd == "yaw":
@@ -475,13 +642,15 @@ def _run_manual(args: argparse.Namespace) -> None:
                     print("Usage: pitch <degrees>")
                 else:
                     pico.move_pitch_sync(float(parts[1]))
+            elif cmd == "feed":
+                if len(parts) < 2:
+                    print("Usage: feed <milliseconds>")
+                else:
+                    duration_s = float(parts[1]) / 1000.0
+                    pico.feed_time_sync(duration_s)
             elif cmd == "align":
                 ok = ctrl.align_yaw()
                 print("Aligned" if ok else "Failed to align")
-            elif cmd == "feed":
-                counts = int(parts[1]) if len(parts) > 1 else None
-                ok = pico.feed_sync(counts=counts, timeout=10.0)
-                print("Feed done" if ok else "Feed timed out or failed")
             elif cmd == "fire":
                 ok = ctrl.fire_sequence()
                 print("Shot fired" if ok else "Fire sequence failed")
@@ -514,10 +683,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Beer Pong Turret Controller")
     parser.add_argument("--port",     default="/dev/ttyACM0", help="Pico serial port")
     parser.add_argument("--camera",   type=int,   default=0,    help="Camera index")
-    parser.add_argument("--focal",    type=float, default=700.0, help="Camera focal length (px)")
+    parser.add_argument("--focal",    type=float, default=1050.0, help="Camera focal length (px)")
     parser.add_argument("--shots",    type=int,   default=6,    help="Number of shots in auto mode")
     parser.add_argument("--delay",    type=float, default=1.5,  help="Delay between shots (s)")
-    parser.add_argument("--throttle", type=int,   default=FLYWHEEL_THROTTLE, help="Flywheel DShot throttle")
+    parser.add_argument("--throttle1", type=int, default=FLYWHEEL_THROTTLE_1, help="Flywheel 1 DShot throttle")
+    parser.add_argument("--throttle2", type=int, default=FLYWHEEL_THROTTLE_2, help="Flywheel 2 DShot throttle")
     parser.add_argument("--manual",   action="store_true", help="Interactive manual control mode")
     args = parser.parse_args()
 

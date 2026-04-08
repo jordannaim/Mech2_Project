@@ -1,0 +1,7 @@
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/picotool/picotool
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/picotool/picotoolTargets.cmake
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/picotool/picotoolTargets-release.cmake
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/picotool/picotoolConfig.cmake
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/picotool/picotoolConfigVersion.cmake
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/picotool/enc_bootloader.elf
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/picotool/enc_bootloader_mbedtls.elf

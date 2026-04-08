@@ -1,0 +1,2 @@
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/CMakeFiles/edit_cache.dir
+C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/_deps/picotool-build/enc_bootloader/CMakeFiles/rebuild_cache.dir

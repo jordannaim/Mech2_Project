@@ -1,0 +1,364 @@
+# ninja log v6
+22964	23564	7966033457060653	dshot.pio.h	7e17f081c804c95c
+379	536	7966033226662004	pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-update	458008de9214f2a8
+98	178	7966033511521534	CMakeFiles/picotoolForceReconfigure	553cb047cfb6b532
+22751	22963	7966033450930224	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/CMakeFiles/pioasmBuild-complete	1c2d57ce61e5c0e3
+995	1899	7966043320480194	turret.dis	795a7065b27b6e21
+134	265	7966033223963316	pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-mkdir	109897853710bd
+75	1630	7966100803999694	build.ninja	6b7466bcde14e081
+134	265	7966033223963316	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-mkdir	109897853710bd
+35809	36200	7966033872430574	picotool/src/picotoolBuild-stamp/picotoolBuild-test	a56ec02e91267845
+196	316	7966033224450256	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-mkdir	5914098583c935c
+36441	37902	7966033874902305	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/common/pico_sync/sem.c.obj	97229309c3de6b78
+98	178	7966033511521534	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/CMakeFiles/picotoolForceReconfigure	553cb047cfb6b532
+196	316	7966033224450256	picotool/src/picotoolBuild-stamp/picotoolBuild-mkdir	5914098583c935c
+265	379	7966033225101346	pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-download	dcfaa83e4ebf642c
+316	443	7966033225755194	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-download	72530e18baf21297
+995	1899	7966043320480194	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.bin	795a7065b27b6e21
+37632	38751	7966033886880505	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom.c.obj	38be90259a4f4952
+22751	22963	7966033450930224	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-done	1c2d57ce61e5c0e3
+75	1630	7966100801000270	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/cmake_install.cmake	6b7466bcde14e081
+265	379	7966033225101346	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-download	dcfaa83e4ebf642c
+153	393	7966033222982494	pico-sdk/src/rp2040/boot_stage2/CMakeFiles/bs2_default.dir/compile_time_choice.S.obj	ed10db33013540b8
+75	1630	7966100801923879	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_i2c/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801358294	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_time/cmake_install.cmake	6b7466bcde14e081
+316	443	7966033225755194	picotool/src/picotoolBuild-stamp/picotoolBuild-download	72530e18baf21297
+379	536	7966033226662004	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-update	458008de9214f2a8
+40420	41076	7966033914766748	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ncm_device.c.obj	852501c47854ebf5
+444	580	7966033227140336	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-update	90f9ecdae9f97482
+444	580	7966033227140336	picotool/src/picotoolBuild-stamp/picotoolBuild-update	90f9ecdae9f97482
+537	652	7966033227883928	pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-patch	e1f0c5c9040b8727
+537	652	7966033227883928	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-patch	e1f0c5c9040b8727
+75	1630	7966100802128172	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_resets/cmake_install.cmake	6b7466bcde14e081
+10150	22235	7966033322925193	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-build	cbe263cad97e7ccc
+40217	40888	7966033912740459	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/midi/midi_device.c.obj	eb198a11082dee50
+75	1630	7966100803638649	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_runtime_init/cmake_install.cmake	6b7466bcde14e081
+581	697	7966033228308484	picotool/src/picotoolBuild-stamp/picotoolBuild-patch	84a62a0cd1ec3b3e
+38488	39136	7966033895449865	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_v1_rom_shim_rp2040.S.obj	b32580d62024a0bc
+75	1630	7966100801479689	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2040/hardware_regs/cmake_install.cmake	6b7466bcde14e081
+581	697	7966033228308484	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-patch	84a62a0cd1ec3b3e
+653	10148	7966033322840550	pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-configure	d67d2437ba5a1b9e
+396	756	7966033228941384	pico-sdk/src/rp2040/boot_stage2/bs2_default.elf	1914a4d0e472a9f4
+75	1630	7966100802395990	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_xosc/cmake_install.cmake	6b7466bcde14e081
+959	1162	7966033232898205	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2040/boot_stage2/bs2_default_padded_checksummed.S	fa0704fb0ae2db96
+36620	38054	7966033876784715	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_uart/uart.c.obj	d0fa620117604bf1
+396	756	7966033228941384	pico-sdk/src/rp2040/boot_stage2/bs2_default.dis	1914a4d0e472a9f4
+75	1630	7966100802733569	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_divider/cmake_install.cmake	6b7466bcde14e081
+396	756	7966033228941384	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2040/boot_stage2/bs2_default.dis	1914a4d0e472a9f4
+756	959	7966033230943024	pico-sdk/src/rp2040/boot_stage2/bs2_default.bin	caf1790a5bd6aa72
+756	959	7966033230943024	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2040/boot_stage2/bs2_default.bin	caf1790a5bd6aa72
+75	1630	7966100801091475	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803662447	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_runtime/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801191296	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_base_headers/cmake_install.cmake	6b7466bcde14e081
+959	1162	7966033232898205	pico-sdk/src/rp2040/boot_stage2/bs2_default_padded_checksummed.S	fa0704fb0ae2db96
+75	1630	7966100801307439	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_divider_headers/cmake_install.cmake	6b7466bcde14e081
+1162	1270	7966033233061834	pico-sdk/src/rp2040/boot_stage2/CMakeFiles/bs2_default_library.dir/bs2_default_padded_checksummed.S.obj	2c2c5cb5db8255cd
+697	12493	7966033346192977	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-configure	aa7f9f91ae8b02a6
+36415	37457	7966033874656959	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync_spin_lock/sync_spin_lock.c.obj	d32b31c5cf142635
+653	10148	7966033322840550	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-configure	d67d2437ba5a1b9e
+75	1630	7966100801596739	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_base/cmake_install.cmake	6b7466bcde14e081
+39244	41230	7966033903004735	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c.obj	2429548d60d34061
+75	1630	7966100801786932	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_dma/cmake_install.cmake	6b7466bcde14e081
+697	12493	7966033346192977	picotool/src/picotoolBuild-stamp/picotoolBuild-configure	aa7f9f91ae8b02a6
+10150	22235	7966033322925193	pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-build	cbe263cad97e7ccc
+22236	22750	7966033443835980	pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-install	23e8b2a293b8d003
+22236	22750	7966033443835980	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-install	23e8b2a293b8d003
+22751	22963	7966033450930224	pico-sdk/src/rp2_common/pico_cyw43_driver/CMakeFiles/pioasmBuild-complete	1c2d57ce61e5c0e3
+40461	41365	7966033915170032	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/vendor/vendor_device.c.obj	58a4de0849369b5d
+75	1630	7966100801282846	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_binary_info/cmake_install.cmake	6b7466bcde14e081
+39023	40780	7966033900795520	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_usb/stdio_usb.c.obj	e8f3009a948ece7b
+22964	23564	7966033457060653	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/dshot.pio.h	7e17f081c804c95c
+22751	22963	7966033450930224	pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/pioasmBuild-stamp/pioasmBuild-done	1c2d57ce61e5c0e3
+75	1630	7966100801030295	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801050221	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/tools/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801378489	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_util/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801251333	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_bit_ops_headers/cmake_install.cmake	6b7466bcde14e081
+995	1899	7966043320480194	turret.bin	795a7065b27b6e21
+75	1630	7966100801123287	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/boot_picobin_headers/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801148309	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/boot_picoboot_headers/cmake_install.cmake	6b7466bcde14e081
+40576	41551	7966033916313834	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/tusb.c.obj	33ec3f12d77d380c
+75	1630	7966100801171132	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/boot_uf2_headers/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801987052	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_irq/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801221336	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_usb_reset_interface_headers/cmake_install.cmake	6b7466bcde14e081
+39178	40216	7966033902354532	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xip_cache/xip_cache.c.obj	d5a6a1e2d1c455c0
+75	1630	7966100801327695	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_sync/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801402156	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_stdlib_headers/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801434358	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/hardware_claim/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801459760	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2040/pico_platform/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802057045	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_pll/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801513236	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2040/hardware_structs/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801566455	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2040/boot_stage2/cmake_install.cmake	6b7466bcde14e081
+37703	38720	7966033887609474	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_flash/flash.c.obj	fc2ab092e215384d
+75	1630	7966100801639644	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_adc/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801685243	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_boot_lock/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803399916	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_time_adapter/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801715261	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_clocks/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801755191	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_divider/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801832467	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_exception/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801863565	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_flash/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801893771	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_gpio/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100801966801	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_interp/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802017107	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_pio/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802087089	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_pwm/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802798809	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_int64_ops/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802158162	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_rtc/cmake_install.cmake	6b7466bcde14e081
+995	1899	7966043320480194	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.dis	795a7065b27b6e21
+75	1630	7966100802178105	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_spi/cmake_install.cmake	6b7466bcde14e081
+38458	39425	7966033895145050	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_init_rom_rp2040.c.obj	5879df2060ac65df
+75	1630	7966100802208098	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_sync/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803119098	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdio_usb/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802228081	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_sync_spin_lock/cmake_install.cmake	6b7466bcde14e081
+36200	36339	7966033873836488	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-done	3d6b4afce0eda26
+75	1630	7966100802250561	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_ticks/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802275936	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_timer/cmake_install.cmake	6b7466bcde14e081
+179	34616	7966033512337271	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-build	8f135b4fb941e369
+75	1630	7966100802306036	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_uart/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802326018	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_vreg/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802345958	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_watchdog/cmake_install.cmake	6b7466bcde14e081
+38732	40351	7966033897892464	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_atomic/atomic.c.obj	34e055c822f9568e
+75	1630	7966100802366019	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_xip_cache/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802415975	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/boot_bootrom_headers/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802453365	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_platform_common/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802473377	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_platform_compiler/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802503412	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_platform_sections/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802523413	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_platform_panic/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802543396	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_aon_timer/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802573397	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_bootrom/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802603383	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_bootsel_via_double_reset/cmake_install.cmake	6b7466bcde14e081
+38632	39296	7966033896897057	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_v1_rom_shim_rp2040.S.obj	bf94d1b7667fb2d7
+75	1630	7966100802633417	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_multicore/cmake_install.cmake	6b7466bcde14e081
+90	993	7966043302520882	CMakeFiles/turret.dir/main.c.obj	9c9032050b2dfda1
+75	1630	7966100802653599	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_unique_id/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802683630	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_atomic/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802713611	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_bit_ops/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802763602	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_double/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802819011	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_flash/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802849084	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_float/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802869089	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_mem_ops/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802899069	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_malloc/cmake_install.cmake	6b7466bcde14e081
+36380	37283	7966033874331785	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_common/common.c.obj	25a3974ab93ad6e
+75	1630	7966100802928997	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_printf/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802949077	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_rand/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100802979043	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdio_semihosting/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803009077	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdio_uart/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803039068	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdio_rtt/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803059003	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/cmsis/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803089086	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/tinyusb/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803149063	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_i2c_slave/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803179072	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_async_context/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803199067	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_btstack/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803229018	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/cmake_install.cmake	6b7466bcde14e081
+40657	41705	7966033917131176	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pio/pio.c.obj	ae284048544ef15
+75	1630	7966100803259086	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/cybt_shared_bus/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803289065	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_mbedtls/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803319049	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_lwip/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803349675	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_lwip/tools/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803369902	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_arch/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803429941	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_crt0/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803459912	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_clib_interface/cmake_install.cmake	6b7466bcde14e081
+36200	36339	7966033873836488	CMakeFiles/picotoolBuild-complete	3d6b4afce0eda26
+75	1630	7966100803489912	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cxx_options/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803509937	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_standard_binary_info/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803529914	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_standard_link/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803559876	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_fix/cmake_install.cmake	6b7466bcde14e081
+36466	38107	7966033875229737	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/common/pico_sync/mutex.c.obj	e36b0f30d6f36961
+75	1630	7966100803584425	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803618625	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_status_led/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803692762	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdio/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803722765	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdlib/cmake_install.cmake	6b7466bcde14e081
+75	1630	7966100803752720	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/docs/cmake_install.cmake	6b7466bcde14e081
+36433	37204	7966033874902305	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq_handler_chain.S.obj	df06feaf9efd2d1d
+179	34616	7966033512337271	picotool/src/picotoolBuild-stamp/picotoolBuild-build	8f135b4fb941e369
+34617	35809	7966033856739902	picotool/src/picotoolBuild-stamp/picotoolBuild-install	cf80da0b090e9a7a
+34617	35809	7966033856739902	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-install	cf80da0b090e9a7a
+35809	36200	7966033872430574	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/picotool/src/picotoolBuild-stamp/picotoolBuild-test	a56ec02e91267845
+36200	36339	7966033873836488	picotool/src/picotoolBuild-stamp/picotoolBuild-done	3d6b4afce0eda26
+36200	36339	7966033873836488	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/CMakeFiles/picotoolBuild-complete	3d6b4afce0eda26
+36367	37418	7966033874249700	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2040/pico_platform/platform.c.obj	15dd0f2e26fcdf7
+36407	37536	7966033874576196	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_sync/sync.c.obj	100b0556bd360c
+36451	37631	7966033875066005	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/common/pico_sync/lock_core.c.obj	7b348ebb78e76050
+36399	37646	7966033874494330	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/common/hardware_claim/claim.c.obj	9f9fc590722788c5
+36348	37674	7966033874001830	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdlib/stdlib.c.obj	9f863a7271b93c7
+36482	37703	7966033875310663	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/common/pico_sync/critical_section.c.obj	5720e4250c1f90d9
+36523	37918	7966033875804102	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/common/pico_time/timeout_helper.c.obj	2ff350d5e83461e0
+36424	38081	7966033874738977	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_irq/irq.c.obj	8f43bb469691642
+37536	38400	7966033885932919	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_ticks/ticks.c.obj	76ed772601d16bf6
+38802	41100	7966033898593019	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_printf/printf.c.obj	4bf26fe971c3c050
+36390	38416	7966033874476644	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_platform_panic/panic.c.obj	17c478caee194546
+39673	40673	7966033907295253	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/hid/hid_device.c.obj	304a1402a10c124c
+36535	38430	7966033875886382	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_timer/timer.c.obj	210d4790f3b6726f
+37418	38444	7966033884752175	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_vreg/vreg.c.obj	7a4903a58480a387
+37675	38458	7966033887303928	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_boot_lock/boot_lock.c.obj	21bc16cbae5d9a3a
+37284	38473	7966033883411938	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_pll/pll.c.obj	e4a3515c98f8df0e
+36357	38487	7966033874084076	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_gpio/gpio.c.obj	d3df663725e1a51c
+995	1899	7966043320480194	turret.uf2	795a7065b27b6e21
+37646	38502	7966033887041816	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bootrom/bootrom_lock.c.obj	526eecc8da1e2c26
+36588	38519	7966033876483128	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/common/pico_util/pheap.c.obj	87158fcd322cce1c
+37918	38570	7966033889755473	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_divider/divider.S.obj	e2046c3714bf4bd2
+36606	38613	7966033876621639	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/common/pico_util/queue.c.obj	20dd82b15a60b03a
+40559	41138	7966033916172693	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/video/video_device.c.obj	c9c4ad00c0865e8
+36549	38631	7966033876295139	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/common/pico_util/datetime.c.obj	a62dacb9763b2cb1
+37464	38670	7966033885199390	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_watchdog/watchdog.c.obj	fa3ef5431b8e471
+37905	38779	7966033889620979	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_xosc/xosc.c.obj	91dd510f5f78445c
+38054	38797	7966033891114633	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime/runtime.c.obj	bdef0400ed4dda8e
+36495	38881	7966033875641172	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/common/pico_time/time.c.obj	9311f2a943d8d614
+37205	38899	7966033882625913	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_clocks/clocks.c.obj	525af1c042605e65
+38445	38976	7966033895023160	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_aeabi_rp2040.S.obj	27f902856b90609b
+38107	38991	7966033891644889	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_clocks.c.obj	de895d3ee4fe2d12
+38431	39016	7966033894886078	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_divider/divider_hardware.S.obj	c944571e8766f161
+40612	41649	7966033916696838	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/common/tusb_fifo.c.obj	d6db5b5ac0fe1314
+995	1899	7966043320480194	turret.elf	795a7065b27b6e21
+38081	39059	7966033891376692	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init.c.obj	f6fc24e900b18b24
+38416	39119	7966033894737508	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_bit_ops/bit_ops_aeabi.S.obj	f2e5c0427e0420d5
+38505	39177	7966033895606019	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_int64_ops/pico_int64_ops_aeabi.S.obj	3cebcaf07f55c12b
+38401	39236	7966033894578089	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_runtime_init/runtime_init_stack_guard.c.obj	439aff216d81300c
+38519	39260	7966033895767808	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_aeabi_rp2040.S.obj	618ec94ae0679db
+38702	39335	7966033897567974	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_mem_ops/mem_ops_aeabi.S.obj	cfd916ac8c147d7e
+38671	39599	7966033897277008	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_malloc/malloc.c.obj	ee350cd6ac9ca99e
+38883	39642	7966033899399302	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_crt0/crt0.S.obj	71e3b299bfc20982
+38576	39657	7966033896332210	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_init_rom_rp2040.c.obj	9274d1d70081f92c
+38781	39672	7966033898391171	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_standard_binary_info/standard_binary_info.c.obj	4272251c673d099c
+38757	40388	7966033898181170	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_cxx_options/new_delete.cpp.obj	54f64d6c9d0e492b
+39425	40419	7966033904816429	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/audio/audio_device.c.obj	2be31a11b0e134e8
+995	1899	7966043320480194	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.uf2	795a7065b27b6e21
+39120	40441	7966033901760396	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_unique_id/unique_id.c.obj	7f87c3998fb58379
+38900	40460	7966033899577067	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_clib_interface/newlib_interface.c.obj	c4d4ce314ba32030
+39642	40559	7966033906992936	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_device.c.obj	83505ac267f37cef
+38977	40575	7966033900324175	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio/stdio.c.obj	9dc5aa0061e223ed
+38993	40612	7966033900489108	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_usb/reset_interface.c.obj	7d561d6024c802c8
+39060	40629	7966033901181167	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_stdio_usb/stdio_usb_descriptors.c.obj	dc06afb6102b9e20
+39136	40656	7966033901984550	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/hardware_flash/flash.c.obj	b0ab23dbb8d110f8
+38614	40671	7966033896714654	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_float/float_math.c.obj	6f2ae949d8caed44
+39658	40796	7966033907133976	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/dfu/dfu_rt_device.c.obj	615b14b2e158cdaf
+38473	40826	7966033895308072	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_double/double_math.c.obj	e979fbc5f5d79084
+39336	40935	7966033903926239	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd_control.c.obj	954166d7e521a7eb
+39262	41023	7966033903200642	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c.obj	711b85dc4307f8db
+40388	41066	7966033914449220	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/net/ecm_rndis_device.c.obj	273fc955150706cd
+40442	41069	7966033915028836	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/usbtmc/usbtmc_device.c.obj	a3e76fb158c09b7f
+40352	41074	7966033914086183	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/msc/msc_device.c.obj	c84a87a0ecf3344e
+39599	41130	7966033906569893	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/class/cdc/cdc_device.c.obj	c771e9efdf4e73b0
+40629	41324	7966033916869191	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c.obj	dcfded4d8e8a9867
+39297	41452	7966033903543334	CMakeFiles/turret.dir/C_/Users/davee/.pico-sdk/sdk/2.2.0/lib/tinyusb/src/device/usbd.c.obj	d69ecf3525793b90
+995	1899	7966043320480194	turret.hex	795a7065b27b6e21
+995	1899	7966043320480194	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.hex	795a7065b27b6e21
+133	4460	7966100803999694	build.ninja	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/tools/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/boot_picobin_headers/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/boot_picoboot_headers/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/boot_uf2_headers/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_base_headers/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_usb_reset_interface_headers/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_bit_ops_headers/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_binary_info/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_divider_headers/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_sync/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_time/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_util/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/pico_stdlib_headers/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/common/hardware_claim/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2040/pico_platform/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2040/hardware_regs/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2040/hardware_structs/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2040/boot_stage2/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_base/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_adc/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_boot_lock/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_clocks/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_divider/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_dma/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_exception/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_flash/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_gpio/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_i2c/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_interp/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_irq/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_pio/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_pll/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_pwm/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_resets/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_rtc/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_spi/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_sync/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_sync_spin_lock/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_ticks/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_timer/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_uart/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_vreg/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_watchdog/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_xip_cache/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/hardware_xosc/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/boot_bootrom_headers/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_platform_common/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_platform_compiler/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_platform_sections/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_platform_panic/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_aon_timer/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_bootrom/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_bootsel_via_double_reset/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_multicore/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_unique_id/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_atomic/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_bit_ops/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_divider/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_double/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_int64_ops/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_flash/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_float/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_mem_ops/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_malloc/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_printf/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_rand/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdio_semihosting/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdio_uart/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdio_rtt/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/cmsis/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/tinyusb/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdio_usb/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_i2c_slave/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_async_context/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_btstack/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_driver/cybt_shared_bus/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_mbedtls/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_lwip/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_lwip/tools/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cyw43_arch/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_time_adapter/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_crt0/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_clib_interface/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_cxx_options/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_standard_binary_info/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_standard_link/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_fix/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_status_led/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_runtime_init/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_runtime/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdio/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/src/rp2_common/pico_stdlib/cmake_install.cmake	6b7466bcde14e081
+133	4460	7966100803999694	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/pico-sdk/docs/cmake_install.cmake	6b7466bcde14e081
+129	819	7966100813959478	dshot.pio.h	7e17f081c804c95c
+129	819	7966100813959478	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/dshot.pio.h	7e17f081c804c95c
+822	6475	7966100814104833	CMakeFiles/turret.dir/main.c.obj	9c9032050b2dfda1
+6477	10374	7966100909491225	turret.elf	795a7065b27b6e21
+6477	10374	7966100909491225	turret.dis	795a7065b27b6e21
+6477	10374	7966100909491225	turret.hex	795a7065b27b6e21
+6477	10374	7966100909491225	turret.bin	795a7065b27b6e21
+6477	10374	7966100909491225	turret.uf2	795a7065b27b6e21
+6477	10374	7966100909491225	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.dis	795a7065b27b6e21
+6477	10374	7966100909491225	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.hex	795a7065b27b6e21
+6477	10374	7966100909491225	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.bin	795a7065b27b6e21
+6477	10374	7966100909491225	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.uf2	795a7065b27b6e21
+231	5736	7967723631143824	CMakeFiles/turret.dir/main.c.obj	9c9032050b2dfda1
+5737	10406	7967723732702791	turret.elf	795a7065b27b6e21
+5737	10406	7967723732702791	turret.dis	795a7065b27b6e21
+5737	10406	7967723732702791	turret.hex	795a7065b27b6e21
+5737	10406	7967723732702791	turret.bin	795a7065b27b6e21
+5737	10406	7967723732702791	turret.uf2	795a7065b27b6e21
+5737	10406	7967723732702791	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.dis	795a7065b27b6e21
+5737	10406	7967723732702791	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.hex	795a7065b27b6e21
+5737	10406	7967723732702791	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.bin	795a7065b27b6e21
+5737	10406	7967723732702791	C:/Users/davee/OneDrive/Desktop/Semester 8/Mechatronics2/Code/pico/build/turret.uf2	795a7065b27b6e21

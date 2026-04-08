@@ -78,16 +78,40 @@ _RED_PAD         = int(_t("Red Pad",          16))
 _RED_MIN_AREA    = int(_t("Red MinArea",      52)) * 100
 
 # Target locking / persistence
-_LOCK_RADIUS     = 0.35   # max x_norm/y_norm distance to consider "same cup"
-_PERSIST_FRAMES  = 5      # frames to hold last valid result when detection fails
+_LOCK_RADIUS            = 0.24  # strict same-cup radius during normal tracking
+_LOCK_REACQUIRE_RADIUS  = 0.40  # larger radius allowed briefly for shake recovery
+_LOCK_UPDATE_ALPHA      = 0.18  # lock position smoothing factor (0..1)
+_PERSIST_FRAMES         = 8     # hold last valid result when brief detection dropouts occur
+_FRONT_TARGET_SCORE_MARGIN = 0.12  # among near-best candidates, choose front-most cup
+_UNLOCK_PERSIST_FRAMES  = 4     # short persistence even when not explicitly locked
+_UNLOCK_TRACK_ALPHA     = 0.20  # smoothing for unlocked soft tracking anchor
+_UNLOCK_TRACK_MAX_MISS  = 14    # clear unlocked soft anchor after prolonged misses
+_RIM_ANGLE_TOL_DEG      = 22.0  # looser rim-angle tolerance for real-world camera tilt/noise
 
 # Camera exposure controls (Linux/V4L2/OpenCV)
 # - Many UVC cameras expect CAP_PROP_AUTO_EXPOSURE=1 for manual, 3 for auto.
 # - CAP_PROP_EXPOSURE units are camera-specific (often negative on Linux UVC).
-_CAMERA_AUTO_EXPOSURE = False
-_CAMERA_EXPOSURE = float(os.getenv("CUP_CAMERA_EXPOSURE", "-16"))
-_CAMERA_GAIN = float(os.getenv("CUP_CAMERA_GAIN", "0"))
-_CAMERA_BRIGHTNESS = float(os.getenv("CUP_CAMERA_BRIGHTNESS", "0"))
+_CAMERA_AUTO_EXPOSURE = os.getenv("CUP_CAMERA_AUTO_EXPOSURE", "1") != "0"
+
+
+def _env_float(name: str) -> Optional[float]:
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        logger.warning("Invalid %s=%r (expected float); ignoring", name, raw)
+        return None
+
+
+_CAMERA_EXPOSURE = _env_float("CUP_CAMERA_EXPOSURE")
+_CAMERA_GAIN = _env_float("CUP_CAMERA_GAIN")
+_CAMERA_BRIGHTNESS = _env_float("CUP_CAMERA_BRIGHTNESS")
+# Bias used only when auto exposure is enabled (mapped to brightness control).
+_CAMERA_AUTO_EXPOSURE_BIAS = _env_float("CUP_CAMERA_AUTO_EXPOSURE_BIAS")
+if _CAMERA_AUTO_EXPOSURE_BIAS is None:
+    _CAMERA_AUTO_EXPOSURE_BIAS = -40.0
 
 
 def _set_cap_prop(cap: cv2.VideoCapture, prop: int, value: float, label: str) -> None:
@@ -109,15 +133,40 @@ def _configure_camera_image_controls(cap: cv2.VideoCapture) -> None:
         # Force manual mode with both conventions, then apply explicit exposure.
         _set_cap_prop(cap, cv2.CAP_PROP_AUTO_EXPOSURE, 1.0, "auto_exposure")
         _set_cap_prop(cap, cv2.CAP_PROP_AUTO_EXPOSURE, 0.25, "auto_exposure")
-        time.sleep(0.05)
-        _set_cap_prop(cap, cv2.CAP_PROP_EXPOSURE, _CAMERA_EXPOSURE, "exposure")
-        time.sleep(0.05)
-        _set_cap_prop(cap, cv2.CAP_PROP_EXPOSURE, _CAMERA_EXPOSURE, "exposure")
+        if _CAMERA_EXPOSURE is not None:
+            time.sleep(0.05)
+            _set_cap_prop(cap, cv2.CAP_PROP_EXPOSURE, _CAMERA_EXPOSURE, "exposure")
+            time.sleep(0.05)
+            _set_cap_prop(cap, cv2.CAP_PROP_EXPOSURE, _CAMERA_EXPOSURE, "exposure")
+        else:
+            logger.warning(
+                "Manual exposure mode enabled but CUP_CAMERA_EXPOSURE is not set"
+            )
 
     # Reduce other auto controls that can make the frame blow out.
-    _set_cap_prop(cap, cv2.CAP_PROP_AUTO_WB, 0.0, "auto_wb")
-    _set_cap_prop(cap, cv2.CAP_PROP_GAIN, _CAMERA_GAIN, "gain")
-    _set_cap_prop(cap, cv2.CAP_PROP_BRIGHTNESS, _CAMERA_BRIGHTNESS, "brightness")
+    if _CAMERA_AUTO_EXPOSURE:
+        _set_cap_prop(cap, cv2.CAP_PROP_AUTO_WB, 1.0, "auto_wb")
+    else:
+        _set_cap_prop(cap, cv2.CAP_PROP_AUTO_WB, 0.0, "auto_wb")
+
+    if _CAMERA_GAIN is not None:
+        _set_cap_prop(cap, cv2.CAP_PROP_GAIN, _CAMERA_GAIN, "gain")
+
+    # There is no standard OpenCV "auto exposure offset" control across webcams.
+    # On many devices, brightness acts like exposure bias while AE stays enabled.
+    brightness_to_apply = _CAMERA_BRIGHTNESS
+    if _CAMERA_AUTO_EXPOSURE and _CAMERA_AUTO_EXPOSURE_BIAS is not None:
+        brightness_to_apply = _CAMERA_AUTO_EXPOSURE_BIAS
+
+    if brightness_to_apply is not None:
+        _set_cap_prop(cap, cv2.CAP_PROP_BRIGHTNESS, brightness_to_apply, "brightness")
+
+
+def _restore_camera_defaults(cap: cv2.VideoCapture) -> None:
+    """Best-effort restore so other apps are not left with manual blown-out settings."""
+    _set_cap_prop(cap, cv2.CAP_PROP_AUTO_EXPOSURE, 3.0, "restore_auto_exp")
+    _set_cap_prop(cap, cv2.CAP_PROP_AUTO_EXPOSURE, 0.75, "restore_auto_exp")
+    _set_cap_prop(cap, cv2.CAP_PROP_AUTO_WB, 1.0, "restore_auto_wb")
 
 
 def _scaled_detection_params(frame_w: int, frame_h: int) -> Tuple[int, int, int, int, int, int, int]:
@@ -232,13 +281,17 @@ def _detect_in_frame(
     frame: np.ndarray,
     focal_length_px: float,
     lock_pos: Optional[Tuple[float, float]] = None,
+    require_lock: bool = True,
 ) -> Tuple[DetectionResult, np.ndarray]:
     """
     Run cup detection on one frame. Returns (result, annotated_frame).
 
     lock_pos: if provided as (x_norm, y_norm), prefer the candidate nearest
     to that position over the highest-scoring one. Falls back to best score
-    if no candidates are within _LOCK_RADIUS.
+    if no candidates are within _LOCK_RADIUS when require_lock is False.
+
+    If unlocked, prefers the front-most (closest) cup among candidates near
+    the best detection score.
     """
     out = frame.copy()
     h, w = frame.shape[:2]
@@ -291,10 +344,10 @@ def _detect_in_frame(
         if not (_MIN_ASPECT <= aspect <= _MAX_ASPECT):
             continue
 
-        # Cup rims viewed from above always have a near-horizontal major axis.
-        # Reject ellipses whose minor axis is more than 15° off horizontal.
+        # Cup rims viewed from above have near-horizontal major axes, but allow
+        # extra tolerance for camera tilt and blur while moving.
         minor_axis_angle = (angle + 90) % 180
-        if min(minor_axis_angle, 180 - minor_axis_angle) > 15:
+        if min(minor_axis_angle, 180 - minor_axis_angle) > _RIM_ANGLE_TOL_DEG:
             continue
 
         support = _support_score(edges, cx, cy, ma, mi, angle)
@@ -317,14 +370,39 @@ def _detect_in_frame(
 
     candidates.sort(key=lambda c: c[0], reverse=True)
 
-    # Select candidate: prefer locked cup, fall back to best score
+    # Select candidate: when locked, stay on the same cup (nearest to lock pos)
     if lock_pos is not None:
         lx, ly = lock_pos
-        nearby = [c for c in candidates
-                  if (c[7] - lx) ** 2 + (c[8] - ly) ** 2 < _LOCK_RADIUS ** 2]
-        selected = nearby[0] if nearby else candidates[0]
+        strict = []
+        reacq = []
+        for c in candidates:
+            d2 = (c[7] - lx) ** 2 + (c[8] - ly) ** 2
+            if d2 < _LOCK_RADIUS ** 2:
+                strict.append((d2, c))
+            elif d2 < _LOCK_REACQUIRE_RADIUS ** 2:
+                reacq.append((d2, c))
+
+        if strict:
+            # Nearest cup to current lock position, then best score
+            selected = min(strict, key=lambda x: (x[0], -x[1][0]))[1]
+        elif reacq:
+            # Allow controlled re-acquire after shake, still nearest-first
+            selected = min(reacq, key=lambda x: (x[0], -x[1][0]))[1]
+        else:
+            if require_lock:
+                cv2.putText(out, "LOCK LOST", (20, 32),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                return DetectionResult(valid=False, frame_w=w, frame_h=h), out
+            # Unlocked soft tracking: if anchor no longer matches, gracefully
+            # fall back to regular front-most selection instead of invalid.
+            best_score = candidates[0][0]
+            front_pool = [c for c in candidates if c[0] >= (best_score - _FRONT_TARGET_SCORE_MARGIN)]
+            selected = max(front_pool, key=lambda c: (max(c[3], c[4]), c[0]))
     else:
-        selected = candidates[0]
+        best_score = candidates[0][0]
+        front_pool = [c for c in candidates if c[0] >= (best_score - _FRONT_TARGET_SCORE_MARGIN)]
+        # Larger apparent major axis => closer/front-most cup.
+        selected = max(front_pool, key=lambda c: (max(c[3], c[4]), c[0]))
 
     # Draw all candidates (green), selected (magenta), others that are locked-out (gray)
     for i, c in enumerate(candidates[:8]):
@@ -344,6 +422,19 @@ def _detect_in_frame(
     gy = float(cy + y0)
     major = max(ma, mi)
     confidence = float(np.clip(best_score, 0.0, 1.0))
+
+    # Live visual centerline for alignment debugging: x=0 in normalized space.
+    center_x = int(round(w / 2.0))
+    cv2.line(out, (center_x, 0), (center_x, h - 1), (0, 255, 255), 2)
+    cv2.putText(
+        out,
+        "x=0",
+        (center_x + 8, 24),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (0, 255, 255),
+        2,
+    )
 
     # Pinhole distance estimate: D = (real_diameter * focal_px) / apparent_px
     distance_m = 0.0
@@ -403,6 +494,8 @@ class CupDetector:
 
         # Target locking — set by lock_target(), cleared by unlock_target()
         self._lock_pos: Optional[Tuple[float, float]] = None
+        self._soft_track_pos: Optional[Tuple[float, float]] = None
+        self._soft_track_missed: int = 0
 
         # Persistence — keep the last valid result for up to _PERSIST_FRAMES
         # missed frames, with confidence decaying each frame
@@ -436,6 +529,11 @@ class CupDetector:
     def set_focal_length(self, focal_px: float) -> None:
         self._focal_length_px = focal_px
 
+    def is_target_locked(self) -> bool:
+        """Return True when detector currently has an active target lock."""
+        with self._lock:
+            return self._lock_pos is not None
+
     def lock_target(self, x_norm: float, y_norm: float) -> None:
         """
         Lock detection to the cup nearest this normalized position.
@@ -444,6 +542,8 @@ class CupDetector:
         """
         with self._lock:
             self._lock_pos = (x_norm, y_norm)
+            self._soft_track_pos = None
+            self._soft_track_missed = 0
             self._missed_frames = 0
         logger.info("Target locked at (x=%.3f y=%.3f)", x_norm, y_norm)
 
@@ -451,6 +551,11 @@ class CupDetector:
         """Clear the target lock so the next shot can pick a new cup."""
         with self._lock:
             self._lock_pos = None
+            # Keep a soft anchor at the last known valid location so unlocked
+            # tracking remains stable instead of jumping cups immediately.
+            if self._last_valid_result.valid:
+                self._soft_track_pos = (self._last_valid_result.x_norm, self._last_valid_result.y_norm)
+                self._soft_track_missed = 0
             self._missed_frames = 0
         logger.info("Target unlocked")
 
@@ -480,43 +585,90 @@ class CupDetector:
             cap.release()
             return
 
-        while self._running:
-            ok, frame = cap.read()
-            if not ok or frame is None:
-                logger.warning("Frame read failed")
-                time.sleep(0.05)
-                continue
+        try:
+            while self._running:
+                ok, frame = cap.read()
+                if not ok or frame is None:
+                    logger.warning("Frame read failed")
+                    time.sleep(0.05)
+                    continue
 
-            with self._lock:
-                lock_pos = self._lock_pos
+                with self._lock:
+                    hard_lock_pos = self._lock_pos
+                    soft_pos = self._soft_track_pos
 
-            result, annotated = _detect_in_frame(frame, self._focal_length_px, lock_pos)
+                track_pos = hard_lock_pos if hard_lock_pos is not None else soft_pos
+                result, annotated = _detect_in_frame(
+                    frame,
+                    self._focal_length_px,
+                    track_pos,
+                    require_lock=(hard_lock_pos is not None),
+                )
 
-            with self._lock:
-                if result.valid:
-                    self._last_valid_result = result
-                    self._missed_frames = 0
-                    # Auto-advance the lock position to follow the cup
-                    if self._lock_pos is not None:
-                        self._lock_pos = (result.x_norm, result.y_norm)
-                else:
-                    self._missed_frames += 1
-                    if self._missed_frames <= _PERSIST_FRAMES:
-                        # Return last known position with decaying confidence
-                        r = self._last_valid_result
-                        result = DetectionResult(
-                            valid=True,
-                            x_norm=r.x_norm,
-                            y_norm=r.y_norm,
-                            distance_m=r.distance_m,
-                            confidence=r.confidence * (0.8 ** self._missed_frames),
-                            frame_w=r.frame_w,
-                            frame_h=r.frame_h,
-                        )
-                self._last_result = result
-                self._last_frame = annotated
-
-        cap.release()
+                with self._lock:
+                    locked = self._lock_pos is not None
+                    if result.valid:
+                        self._last_valid_result = result
+                        self._missed_frames = 0
+                        self._soft_track_missed = 0
+                        # Auto-advance the lock position to follow the cup
+                        if locked:
+                            lx, ly = self._lock_pos
+                            a = _LOCK_UPDATE_ALPHA
+                            self._lock_pos = (
+                                (1.0 - a) * lx + a * result.x_norm,
+                                (1.0 - a) * ly + a * result.y_norm,
+                            )
+                        else:
+                            # Unlocked mode still tracks one cup smoothly to
+                            # avoid rapid frame-to-frame target switching.
+                            if self._soft_track_pos is None:
+                                self._soft_track_pos = (result.x_norm, result.y_norm)
+                            else:
+                                sx, sy = self._soft_track_pos
+                                a = _UNLOCK_TRACK_ALPHA
+                                self._soft_track_pos = (
+                                    (1.0 - a) * sx + a * result.x_norm,
+                                    (1.0 - a) * sy + a * result.y_norm,
+                                )
+                    else:
+                        self._missed_frames += 1
+                        if not locked:
+                            self._soft_track_missed += 1
+                            if self._soft_track_missed > _UNLOCK_TRACK_MAX_MISS:
+                                self._soft_track_pos = None
+                        if locked and self._missed_frames <= _PERSIST_FRAMES:
+                            # During lock only: return last known position with decaying confidence.
+                            r = self._last_valid_result
+                            result = DetectionResult(
+                                valid=True,
+                                x_norm=r.x_norm,
+                                y_norm=r.y_norm,
+                                distance_m=r.distance_m,
+                                confidence=r.confidence * (0.8 ** self._missed_frames),
+                                frame_w=r.frame_w,
+                                frame_h=r.frame_h,
+                            )
+                        elif (not locked and
+                              self._missed_frames <= _UNLOCK_PERSIST_FRAMES and
+                              self._last_valid_result.valid):
+                            # Short persistence in unlocked mode to smooth brief
+                            # flicker without forcing hard lock behavior.
+                            r = self._last_valid_result
+                            result = DetectionResult(
+                                valid=True,
+                                x_norm=r.x_norm,
+                                y_norm=r.y_norm,
+                                distance_m=r.distance_m,
+                                confidence=r.confidence * (0.88 ** self._missed_frames),
+                                frame_w=r.frame_w,
+                                frame_h=r.frame_h,
+                            )
+                    self._last_result = result
+                    self._last_frame = annotated
+        finally:
+            _restore_camera_defaults(cap)
+            cap.release()
 
     # ------------------------------------------------------------------
     # Context manager

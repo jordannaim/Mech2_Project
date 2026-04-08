@@ -1,0 +1,3 @@
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/CMakeFiles/pico_sdk-populate.dir
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/CMakeFiles/edit_cache.dir
+/home/springmech2/Mech2_Project/Integration/pico/build_pi/_deps/pico_sdk-subbuild/CMakeFiles/rebuild_cache.dir
