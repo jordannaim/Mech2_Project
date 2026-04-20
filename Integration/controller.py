@@ -82,7 +82,7 @@ CAMERA_X_OFFSET_M = 0
 FLYWHEEL_THROTTLE_1 = 200   # DShot throttle for flywheel 1 (0-2047)
 FLYWHEEL_THROTTLE_2 = 200   # DShot throttle for flywheel 2 (0-2047)
 FLYWHEEL_SPINUP_S  = 3.0    # seconds to wait after SPIN command before feeding
-FEED_ON_TIME_S     = 0.75    # feed motor on-time per shot (seconds)
+FEED_ON_TIME_S     = 0.420    # feed motor on-time per shot (seconds)
 
 # Empirical trajectory table: distance_m → (pitch_elevation_deg, dshot_throttle_1, dshot_throttle_2)
 # Positive pitch = elevate upward.  Add entries as you calibrate.
