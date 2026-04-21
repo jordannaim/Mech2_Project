@@ -1,37 +1,37 @@
 /**
  * Beer Pong Turret — Pico Firmware
  *
- * Pin assignments (match existing hardware wiring):
+ * Pin assignments (PCB rev 2):
  *   USB CDC (Pi comms): USB micro-B on Pico → USB-A on Pi (/dev/ttyACM0)
+ *   DShot Motor 1  : GPIO0
+ *   DShot Motor 2  : GPIO1
+ *   Servo          : GPIO4   (500-2500 µs, 50 Hz — hardware alarm driven)
+ *   Stepper PITCH  : STEP=GPIO21, DIR=GPIO20
  *   Stepper YAW    : STEP=GPIO27, DIR=GPIO26
- *   Stepper PITCH  : STEP=GPIO17, DIR=GPIO16
- *   DShot Motor 1  : GPIO12
- *   DShot Motor 2  : GPIO13
- *   Feed Motor PWM : GPIO14
- *   Feed Motor DIR : GPIO15
- *   Feed Encoder A : GPIO18  (rising-edge interrupt)
+ *   Stepper INDEXER: STEP=GPIO17, DIR=GPIO16
  *
  * Protocol: text lines, newline-terminated.
  *
  * Pi → Pico commands:
- *   YAW <deg> [freq_hz]       move yaw stepper
- *   PITCH <deg> [freq_hz]     move pitch stepper
- *   SPIN <t1> <t2>            set flywheel DShot throttle (0-2047 each)
- *   FEED [counts]             run feed motor N encoder counts (default 200)
- *   FEED_MS <milliseconds>    run feed motor for fixed time
- *   HOME                      zero position counters, no motion
- *   STATUS                    query state
- *   ESTOP                     stop everything
+ *   YAW_VEL <signed_freq_hz>      continuous yaw velocity (no step limit)
+ *   YAW <deg> [freq_hz]           step-counted yaw move
+ *   PITCH <deg> [freq_hz]         step-counted pitch move (output-shaft degrees)
+ *   PITCH_STEPS <n> [freq_hz]     pitch move by raw signed step count
+ *   FIRE <steps> [freq_hz]        index ball + servo extend/retract
+ *   SPIN <t1> <t2>                set flywheel DShot throttle (0-2047 each)
+ *   HOME                          zero position counters, no motion
+ *   STATUS                        query state
+ *   ESTOP                         stop everything, servo to home
  *
  * Pico → Pi responses/events:
  *   OK
  *   BUSY YAW | BUSY PITCH | BUSY FEED
- *   DONE YAW                  proactively sent when yaw move finishes
- *   DONE PITCH                proactively sent when pitch move finishes
- *   DONE FEED                 proactively sent when feed finishes
- *   STATUS yaw_moving=0 pitch_moving=0 feed_active=0 spin1=0 spin2=0
+ *   DONE YAW
+ *   DONE PITCH
+ *   DONE FEED                     sent when full fire sequence completes
+ *   STATUS yaw_moving=0 pitch_moving=0 indexer_moving=0 fire_active=0 spin1=0 spin2=0
  *   ERR <reason>
- *   BOOT                      sent once on startup
+ *   BOOT
  */
 
 #include "pico/stdlib.h"
@@ -40,6 +40,7 @@
 #include "hardware/pio.h"
 #include "hardware/clocks.h"
 #include "hardware/irq.h"
+#include "hardware/timer.h"
 #include "dshot.pio.h"
 
 #include <stdio.h>
@@ -52,45 +53,63 @@
  * Pin definitions
  * ========================================================================= */
 
-/* Communication: USB CDC — no UART pin defines needed.
- * Pico appears as /dev/ttyACM0 (or ttyACM1) on the Raspberry Pi. */
+#define DSHOT_PIN_1         0u
+#define DSHOT_PIN_2         1u
+
+#define SERVO_PIN           4u
+
+#define PITCH_STEP_PIN      21u
+#define PITCH_DIR_PIN       20u
 
 #define YAW_STEP_PIN        27u
 #define YAW_DIR_PIN         26u
 
-#define PITCH_STEP_PIN      17u
-#define PITCH_DIR_PIN       16u
-
-#define DSHOT_PIN_1         12u
-#define DSHOT_PIN_2         13u
-
-#define FEED_PWM_PIN        14u
-#define FEED_DIR_PIN        15u
-#define FEED_ENC_PIN        18u
+#define INDEXER_STEP_PIN    17u
+#define INDEXER_DIR_PIN     16u
 
 /* =========================================================================
- * Derived PWM slices
- *   slice = (gpio / 2) % 8
+ * PWM slices  (slice = (gpio/2) % 8)
+ *   YAW_STEP  GPIO27: (27/2)%8 = 5
+ *   PITCH_STEP GPIO21: (21/2)%8 = 2
+ *   INDEXER_STEP GPIO17: (17/2)%8 = 0
+ *
+ * NOTE: GPIO4 (servo) also maps to slice 2, channel A.
+ *       Servo uses hardware alarm instead of PWM to avoid conflict.
  * ========================================================================= */
 
-#define YAW_SLICE           5u   /* GPIO27: (27/2)%8 = 5 */
-#define PITCH_SLICE         0u   /* GPIO17: (17/2)%8 = 0 */
-#define FEED_SLICE          7u   /* GPIO14: (14/2)%8 = 7 */
+#define YAW_SLICE       5u
+#define PITCH_SLICE     2u
+#define INDEXER_SLICE   0u
 
 /* =========================================================================
  * Tuning constants
  * ========================================================================= */
 
-#define STEPPER_STEP_ANGLE_DEG   1.8/8.0f   /* degrees per full step */
+/* Step angles per microstep (MS1=MS2=HIGH → 16 microsteps) */
+#define YAW_STEP_ANGLE_DEG      (1.8f / 16.0f)          /* 0.1125° per yaw microstep */
+#define PITCH_STEP_ANGLE_DEG    (1.8f / 16.0f / 10.0f)  /* 0.01125° per pitch microstep (output shaft, 10:1 gearbox) */
+#define INDEXER_STEP_ANGLE_DEG  (0.9f / 16.0f)          /* 0.05625° per indexer microstep */
+
 #define STEPPER_DEFAULT_FREQ_HZ  500u
-#define YAW_VEL_RAMP_HZ_PER_MS  30     /* Pico-side ramp: 30 Hz/ms → 0→400 Hz in ~13 ms */
+#define YAW_VEL_RAMP_HZ_PER_MS  30
+
 #define DSHOT_BITRATE_HZ         150000u
 #define DSHOT_THROTTLE_MAX       2047u
-#define DSHOT_SEND_INTERVAL_US   1000u   /* 1 ms */
-#define FEED_DEFAULT_COUNTS      200u    /* encoder counts per ball feed */
-#define FEED_PWM_FREQ_HZ         20000u  /* 20 kHz feed motor PWM */
-#define FEED_DUTY_PCT            80u     /* feed motor duty while active (%) */
+#define DSHOT_SEND_INTERVAL_US   1000u
+
 #define LINE_BUF_SIZE            80u
+
+/* Servo */
+#define SERVO_ALARM_NUM     2u
+#define SERVO_HOME_US       500u
+#define SERVO_FIRE_US       2500u
+#define SERVO_PERIOD_US     20000u
+
+/* Fire sequence timings */
+#define SERVO_EXTEND_MS     400u   /* ms to hold servo extended */
+#define SERVO_RETRACT_MS    300u   /* ms to wait after retracting before DONE */
+#define INDEXER_DEFAULT_STEPS  800u
+#define SERVO_PRE_FIRE_MS    80u   /* brief settle at HOME before indexer starts */
 
 /* =========================================================================
  * Stepper state
@@ -100,20 +119,31 @@ typedef struct {
     uint step_gpio;
     uint dir_gpio;
     uint slice;
+    float step_angle_deg;
     volatile uint32_t target_steps;
     volatile uint32_t completed_steps;
     volatile bool     move_active;
 } stepper_t;
 
-static stepper_t g_yaw   = { YAW_STEP_PIN,   YAW_DIR_PIN,   YAW_SLICE,   0, 0, false };
-static stepper_t g_pitch = { PITCH_STEP_PIN, PITCH_DIR_PIN, PITCH_SLICE, 0, 0, false };
+static stepper_t g_yaw = {
+    YAW_STEP_PIN, YAW_DIR_PIN, YAW_SLICE,
+    YAW_STEP_ANGLE_DEG, 0, 0, false
+};
+static stepper_t g_pitch = {
+    PITCH_STEP_PIN, PITCH_DIR_PIN, PITCH_SLICE,
+    PITCH_STEP_ANGLE_DEG, 0, 0, false
+};
+static stepper_t g_indexer = {
+    INDEXER_STEP_PIN, INDEXER_DIR_PIN, INDEXER_SLICE,
+    INDEXER_STEP_ANGLE_DEG, 0, 0, false
+};
 
 /* =========================================================================
- * Yaw velocity ramp state  (used only during YAW_VEL / align mode)
+ * Yaw velocity ramp state
  * ========================================================================= */
 
-static int32_t g_yaw_vel_target  = 0;   /* signed Hz commanded by Pi  */
-static int32_t g_yaw_vel_current = 0;   /* signed Hz actually applied */
+static int32_t g_yaw_vel_target  = 0;
+static int32_t g_yaw_vel_current = 0;
 
 /* =========================================================================
  * DShot state
@@ -122,24 +152,29 @@ static int32_t g_yaw_vel_current = 0;   /* signed Hz actually applied */
 static uint16_t g_spin[2] = { 0u, 0u };
 
 /* =========================================================================
- * Feed motor state
+ * Servo state (hardware alarm driven)
  * ========================================================================= */
 
-static volatile int32_t  g_feed_enc_count  = 0;
-static volatile int32_t  g_feed_target     = 0;
-static volatile bool     g_feed_active     = false;
-
-typedef enum {
-    FEED_MODE_NONE = 0,
-    FEED_MODE_COUNTS,
-    FEED_MODE_TIMED,
-} feed_mode_t;
-
-static volatile feed_mode_t g_feed_mode = FEED_MODE_NONE;
-static absolute_time_t g_feed_stop_time;
+static volatile uint32_t g_servo_pulse_us  = SERVO_HOME_US;
+static volatile bool     g_servo_active    = false;
+static volatile bool     g_servo_phase_high = false;
 
 /* =========================================================================
- * Pending "DONE" notifications to send from main loop
+ * Fire state machine
+ * ========================================================================= */
+
+typedef enum {
+    FIRE_IDLE = 0,
+    FIRE_INDEXER_MOVING,
+    FIRE_SERVO_EXTEND,
+    FIRE_SERVO_RETRACT,
+} fire_state_t;
+
+static volatile fire_state_t g_fire_state = FIRE_IDLE;
+static absolute_time_t       g_fire_timer;
+
+/* =========================================================================
+ * Pending DONE notifications
  * ========================================================================= */
 
 static volatile bool g_send_done_yaw   = false;
@@ -147,21 +182,15 @@ static volatile bool g_send_done_pitch = false;
 static volatile bool g_send_done_feed  = false;
 
 /* =========================================================================
- * USB CDC output helpers
+ * USB CDC helpers
  * ========================================================================= */
 
-static void uart_puts_pi(const char *s) {
-    /* printf goes to USB CDC when stdio_init_all() has been called */
-    printf("%s", s);
-}
-
-static void uart_send_ok(void)   { printf("OK\n"); }
-static void uart_send_boot(void) { printf("BOOT\n"); }
+static void uart_puts_pi(const char *s) { printf("%s", s); }
+static void uart_send_ok(void)          { printf("OK\n"); }
+static void uart_send_boot(void)        { printf("BOOT\n"); }
 
 /* =========================================================================
- * PWM frequency setup
- *   Finds the smallest integer divider (1-255) that gives wrap <= 65535.
- *   Sets 50% duty cycle.
+ * PWM frequency setup (50% duty, finds smallest integer divider)
  * ========================================================================= */
 
 static bool pwm_set_freq(uint gpio, uint32_t freq_hz) {
@@ -178,7 +207,7 @@ static bool pwm_set_freq(uint gpio, uint32_t freq_hz) {
 
     pwm_set_clkdiv_int_frac(slice, (uint8_t)divider, 0u);
     pwm_set_wrap(slice, (uint16_t)(wrap - 1u));
-    pwm_set_chan_level(slice, chan, (uint16_t)(wrap / 2u));  /* 50% duty */
+    pwm_set_chan_level(slice, chan, (uint16_t)(wrap / 2u));
     return true;
 }
 
@@ -195,11 +224,67 @@ static void stepper_force_idle(stepper_t *m) {
     m->move_active = false;
 }
 
-/**
- * Apply a signed step frequency directly to the yaw PWM.
- * Positive = forward, negative = reverse, 0 = stop.
- * Does NOT touch g_yaw_vel_current — only call from yaw_vel_ramp_step().
- */
+static void stepper_init_gpio(stepper_t *m) {
+    gpio_init(m->dir_gpio);
+    gpio_set_dir(m->dir_gpio, GPIO_OUT);
+    gpio_put(m->dir_gpio, false);
+
+    gpio_init(m->step_gpio);
+    gpio_set_dir(m->step_gpio, GPIO_OUT);
+    gpio_put(m->step_gpio, false);
+}
+
+/* Start a move specified in degrees (using per-motor step_angle_deg). */
+static bool stepper_start_move(stepper_t *m, float degrees, uint32_t freq_hz) {
+    bool forward = degrees >= 0.0f;
+    float mag    = forward ? degrees : -degrees;
+    uint32_t steps = (uint32_t)(mag / m->step_angle_deg + 0.5f);
+    if (steps == 0u) return false;
+
+    gpio_set_function(m->step_gpio, GPIO_FUNC_PWM);
+    if (!pwm_set_freq(m->step_gpio, freq_hz)) {
+        gpio_set_function(m->step_gpio, GPIO_FUNC_SIO);
+        return false;
+    }
+
+    gpio_put(m->dir_gpio, forward);
+    m->target_steps    = steps;
+    m->completed_steps = 0u;
+    m->move_active     = true;
+
+    pwm_clear_irq(m->slice);
+    pwm_set_irq_enabled(m->slice, true);
+    pwm_set_enabled(m->slice, true);
+    return true;
+}
+
+/* Start a move specified as a raw signed step count. */
+static bool stepper_start_move_steps(stepper_t *m, int32_t steps, uint32_t freq_hz) {
+    bool forward  = steps >= 0;
+    uint32_t abs_steps = (uint32_t)(steps < 0 ? -steps : steps);
+    if (abs_steps == 0u) return false;
+
+    gpio_set_function(m->step_gpio, GPIO_FUNC_PWM);
+    if (!pwm_set_freq(m->step_gpio, freq_hz)) {
+        gpio_set_function(m->step_gpio, GPIO_FUNC_SIO);
+        return false;
+    }
+
+    gpio_put(m->dir_gpio, forward);
+    m->target_steps    = abs_steps;
+    m->completed_steps = 0u;
+    m->move_active     = true;
+
+    pwm_clear_irq(m->slice);
+    pwm_set_irq_enabled(m->slice, true);
+    pwm_set_enabled(m->slice, true);
+    return true;
+}
+
+/* =========================================================================
+ * Yaw velocity ramp
+ * ========================================================================= */
+
 static void yaw_vel_apply(int32_t freq) {
     if (freq == 0) {
         pwm_set_enabled(g_yaw.slice, false);
@@ -209,7 +294,6 @@ static void yaw_vel_apply(int32_t freq) {
     } else {
         bool forward = freq > 0;
         uint32_t abs_freq = (uint32_t)(freq < 0 ? -freq : freq);
-        /* Match the same direction convention used by stepper_start_move(). */
         gpio_put(g_yaw.dir_gpio, forward);
         gpio_set_function(g_yaw.step_gpio, GPIO_FUNC_PWM);
         pwm_set_freq(g_yaw.step_gpio, abs_freq);
@@ -217,14 +301,8 @@ static void yaw_vel_apply(int32_t freq) {
     }
 }
 
-/**
- * Called every 1 ms from the main loop.
- * Steps g_yaw_vel_current toward g_yaw_vel_target by at most
- * YAW_VEL_RAMP_HZ_PER_MS, then applies the new frequency to the PWM.
- * Skipped while a step-counted YAW move is active.
- */
 static void yaw_vel_ramp_step(void) {
-    if (g_yaw.move_active) return;   /* step-counted move has priority */
+    if (g_yaw.move_active) return;
     if (g_yaw_vel_current == g_yaw_vel_target) return;
 
     int32_t diff = g_yaw_vel_target - g_yaw_vel_current;
@@ -246,48 +324,8 @@ static void yaw_vel_stop_immediate(void) {
     yaw_vel_apply(0);
 }
 
-static void stepper_init_gpio(stepper_t *m) {
-    gpio_init(m->dir_gpio);
-    gpio_set_dir(m->dir_gpio, GPIO_OUT);
-    gpio_put(m->dir_gpio, false);
-
-    gpio_init(m->step_gpio);
-    gpio_set_dir(m->step_gpio, GPIO_OUT);
-    gpio_put(m->step_gpio, false);
-}
-
-/**
- * Start a stepper move.
- * degrees > 0 → forward direction, degrees < 0 → reverse.
- * Returns false if steps=0 or PWM config fails.
- */
-static bool stepper_start_move(stepper_t *m, float degrees, uint32_t freq_hz) {
-    bool forward = degrees >= 0.0f;
-    float mag    = forward ? degrees : -degrees;
-    uint32_t steps = (uint32_t)(mag / STEPPER_STEP_ANGLE_DEG + 0.5f);
-    if (steps == 0u) return false;
-
-    gpio_set_function(m->step_gpio, GPIO_FUNC_PWM);
-    if (!pwm_set_freq(m->step_gpio, freq_hz)) {
-        gpio_set_function(m->step_gpio, GPIO_FUNC_SIO);
-        return false;
-    }
-
-    gpio_put(m->dir_gpio, forward);
-
-    m->target_steps    = steps;
-    m->completed_steps = 0u;
-    m->move_active     = true;
-
-    pwm_clear_irq(m->slice);
-    pwm_set_irq_enabled(m->slice, true);
-    pwm_set_enabled(m->slice, true);
-    return true;
-}
-
 /* =========================================================================
- * PWM wrap IRQ — step counter for YAW and PITCH only.
- * FEED slice (7) is intentionally excluded.
+ * PWM wrap IRQ — step counter for YAW, PITCH, INDEXER
  * ========================================================================= */
 
 static void pwm_irq_handler(void) {
@@ -314,6 +352,17 @@ static void pwm_irq_handler(void) {
             }
         }
     }
+
+    if (active & (1u << INDEXER_SLICE)) {
+        pwm_clear_irq(INDEXER_SLICE);
+        if (g_indexer.move_active) {
+            g_indexer.completed_steps++;
+            if (g_indexer.completed_steps >= g_indexer.target_steps) {
+                stepper_force_idle(&g_indexer);
+                /* fire_task() in main loop picks this up and advances state */
+            }
+        }
+    }
 }
 
 /* =========================================================================
@@ -322,8 +371,8 @@ static void pwm_irq_handler(void) {
 
 static uint16_t dshot_packet(uint16_t throttle) {
     uint16_t t = throttle > DSHOT_THROTTLE_MAX ? DSHOT_THROTTLE_MAX : throttle;
-    uint16_t data = (uint16_t)((t << 1u) & 0xFFFEu);  /* telemetry=0 */
-    uint8_t crc = (uint8_t)((data ^ (data >> 4u) ^ (data >> 8u)) & 0x0Fu);
+    uint16_t data = (uint16_t)((t << 1u) & 0xFFFEu);
+    uint8_t  crc  = (uint8_t)((data ^ (data >> 4u) ^ (data >> 8u)) & 0x0Fu);
     return (uint16_t)((data << 4u) | crc);
 }
 
@@ -344,76 +393,86 @@ static void dshot_init_sm(PIO pio, uint sm, uint pin, uint offset) {
 }
 
 /* =========================================================================
- * Feed motor
+ * Servo (hardware alarm 2 — independent of PWM)
  * ========================================================================= */
 
-static void feed_stop(void) {
-    pwm_set_chan_level(FEED_SLICE, PWM_CHAN_A, 0u);
-    g_feed_active = false;
-    g_feed_mode = FEED_MODE_NONE;
-}
-
-/** GPIO interrupt for feed encoder — counts rising edges. */
-static void feed_enc_irq(uint gpio, uint32_t events) {
-    (void)gpio; (void)events;
-    if (!g_feed_active) return;
-    if (g_feed_mode != FEED_MODE_COUNTS) return;
-    g_feed_enc_count++;
-    if (g_feed_enc_count >= g_feed_target) {
-        feed_stop();
-        g_send_done_feed = true;
+static void servo_alarm_cb(uint alarm_num) {
+    (void)alarm_num;
+    if (!g_servo_active) {
+        gpio_put(SERVO_PIN, false);
+        return;
+    }
+    if (g_servo_phase_high) {
+        gpio_put(SERVO_PIN, false);
+        g_servo_phase_high = false;
+        uint32_t low_us = SERVO_PERIOD_US - g_servo_pulse_us;
+        hardware_alarm_set_target(SERVO_ALARM_NUM,
+            delayed_by_us(get_absolute_time(), low_us));
+    } else {
+        gpio_put(SERVO_PIN, true);
+        g_servo_phase_high = true;
+        hardware_alarm_set_target(SERVO_ALARM_NUM,
+            delayed_by_us(get_absolute_time(), g_servo_pulse_us));
     }
 }
 
-static void feed_init(void) {
-    /* Direction pin */
-    gpio_init(FEED_DIR_PIN);
-    gpio_set_dir(FEED_DIR_PIN, GPIO_OUT);
-    gpio_put(FEED_DIR_PIN, true);
+static void servo_init(void) {
+    gpio_init(SERVO_PIN);
+    gpio_set_dir(SERVO_PIN, GPIO_OUT);
+    gpio_put(SERVO_PIN, false);
 
-    /* PWM output */
-    gpio_set_function(FEED_PWM_PIN, GPIO_FUNC_PWM);
-    pwm_set_freq(FEED_PWM_PIN, FEED_PWM_FREQ_HZ);
-    pwm_set_chan_level(FEED_SLICE, PWM_CHAN_A, 0u);  /* start stopped */
-    pwm_set_enabled(FEED_SLICE, true);
+    g_servo_pulse_us   = SERVO_HOME_US;
+    g_servo_active     = false;
+    g_servo_phase_high = false;
 
-    /* Encoder input */
-    gpio_init(FEED_ENC_PIN);
-    gpio_set_dir(FEED_ENC_PIN, GPIO_IN);
-    gpio_pull_up(FEED_ENC_PIN);
-    gpio_set_irq_enabled_with_callback(FEED_ENC_PIN, GPIO_IRQ_EDGE_RISE, true, feed_enc_irq);
+    hardware_alarm_claim(SERVO_ALARM_NUM);
+    hardware_alarm_set_callback(SERVO_ALARM_NUM, servo_alarm_cb);
+
+    /* Enable and start generating pulses at home position */
+    g_servo_active = true;
+    hardware_alarm_set_target(SERVO_ALARM_NUM,
+        delayed_by_us(get_absolute_time(), 2000u));
 }
 
-static void feed_start(int32_t counts) {
-    /* Compute 80% duty cycle level from current wrap */
-    uint32_t wrap = pwm_hw->slice[FEED_SLICE].top + 1u;
-    uint32_t level = wrap * FEED_DUTY_PCT / 100u;
-
-    g_feed_enc_count = 0;
-    g_feed_target    = counts;
-    g_feed_mode      = FEED_MODE_COUNTS;
-    g_feed_active    = true;
-    pwm_set_chan_level(FEED_SLICE, PWM_CHAN_A, (uint16_t)level);
+/* Update servo position — safe to call from anywhere including IRQ context */
+static void servo_set(uint32_t pulse_us) {
+    if (pulse_us < 500u)  pulse_us = 500u;
+    if (pulse_us > 2500u) pulse_us = 2500u;
+    g_servo_pulse_us = pulse_us;
 }
 
-static void feed_start_ms(uint32_t ms) {
-    uint32_t wrap = pwm_hw->slice[FEED_SLICE].top + 1u;
-    uint32_t level = wrap * FEED_DUTY_PCT / 100u;
+/* =========================================================================
+ * Fire state machine
+ * ========================================================================= */
 
-    g_feed_enc_count = 0;
-    g_feed_target    = 0;
-    g_feed_mode      = FEED_MODE_TIMED;
-    g_feed_active    = true;
-    g_feed_stop_time = delayed_by_ms(get_absolute_time(), ms);
-    pwm_set_chan_level(FEED_SLICE, PWM_CHAN_A, (uint16_t)level);
-}
+static void fire_task(void) {
+    switch (g_fire_state) {
+        case FIRE_IDLE:
+            return;
 
-static void feed_timed_update(void) {
-    if (!g_feed_active) return;
-    if (g_feed_mode != FEED_MODE_TIMED) return;
-    if (absolute_time_diff_us(get_absolute_time(), g_feed_stop_time) <= 0) {
-        feed_stop();
-        g_send_done_feed = true;
+        case FIRE_INDEXER_MOVING:
+            if (!g_indexer.move_active) {
+                /* Indexer done — extend servo */
+                servo_set(SERVO_FIRE_US);
+                g_fire_timer = delayed_by_ms(get_absolute_time(), SERVO_EXTEND_MS);
+                g_fire_state = FIRE_SERVO_EXTEND;
+            }
+            break;
+
+        case FIRE_SERVO_EXTEND:
+            if (absolute_time_diff_us(get_absolute_time(), g_fire_timer) <= 0) {
+                servo_set(SERVO_HOME_US);
+                g_fire_timer = delayed_by_ms(get_absolute_time(), SERVO_RETRACT_MS);
+                g_fire_state = FIRE_SERVO_RETRACT;
+            }
+            break;
+
+        case FIRE_SERVO_RETRACT:
+            if (absolute_time_diff_us(get_absolute_time(), g_fire_timer) <= 0) {
+                g_fire_state    = FIRE_IDLE;
+                g_send_done_feed = true;
+            }
+            break;
     }
 }
 
@@ -421,7 +480,6 @@ static void feed_timed_update(void) {
  * Command parser
  * ========================================================================= */
 
-/** Advance past spaces, null-terminate the next token, return pointer to it. */
 static char *next_token(char **ctx) {
     while (**ctx == ' ' || **ctx == '\t') (*ctx)++;
     if (**ctx == '\0') return NULL;
@@ -436,38 +494,26 @@ static void process_command(char *line) {
     char *cmd = next_token(&ctx);
     if (!cmd) return;
 
-    /* --- YAW_VEL <signed_freq_hz> ---
-     * Runs yaw continuously at the given frequency with no step limit.
-     * Positive = forward, negative = reverse, 0 = stop.
-     * Used for smooth camera-based alignment — no DONE event is sent. */
+    /* --- YAW_VEL --- */
     if (strcmp(cmd, "YAW_VEL") == 0) {
         char *a1 = next_token(&ctx);
         if (!a1) { uart_puts_pi("ERR missing_freq\n"); return; }
         int32_t freq = (int32_t)atoi(a1);
-
-        if (g_yaw.move_active) {
-            stepper_force_idle(&g_yaw);   /* stop any step-counted move cleanly */
-        }
-        /* Set target; yaw_vel_ramp_step() in the main loop ramps to it at
-         * YAW_VEL_RAMP_HZ_PER_MS per millisecond — no sudden PWM jump. */
+        if (g_yaw.move_active) stepper_force_idle(&g_yaw);
         g_yaw_vel_target = freq;
         uart_send_ok();
         return;
     }
 
-    /* --- YAW / PITCH --- */
+    /* --- YAW / PITCH (degree-based) --- */
     bool is_yaw   = strcmp(cmd, "YAW")   == 0;
     bool is_pitch = strcmp(cmd, "PITCH") == 0;
 
     if (is_yaw || is_pitch) {
-        stepper_t *motor = is_yaw ? &g_yaw : &g_pitch;
-        const char *name = is_yaw ? "YAW" : "PITCH";
+        stepper_t  *motor = is_yaw ? &g_yaw : &g_pitch;
+        const char *name  = is_yaw ? "YAW" : "PITCH";
 
-        /* If velocity mode was running, stop it immediately before taking
-         * over the PWM slice with a step-counted move. */
-        if (is_yaw) {
-            yaw_vel_stop_immediate();
-        }
+        if (is_yaw) yaw_vel_stop_immediate();
 
         if (motor->move_active) {
             char buf[24];
@@ -480,7 +526,7 @@ static void process_command(char *line) {
         char *freq_s = next_token(&ctx);
         if (!deg_s) { uart_puts_pi("ERR missing_angle\n"); return; }
 
-        float deg = strtof(deg_s, NULL);
+        float    deg  = strtof(deg_s, NULL);
         uint32_t freq = freq_s ? (uint32_t)strtoul(freq_s, NULL, 10) : STEPPER_DEFAULT_FREQ_HZ;
         if (freq == 0u) freq = STEPPER_DEFAULT_FREQ_HZ;
 
@@ -488,6 +534,82 @@ static void process_command(char *line) {
             uart_puts_pi("ERR stepper_config_failed\n");
             return;
         }
+        uart_send_ok();
+        return;
+    }
+
+    /* --- PITCH_STEPS <n> [freq_hz] --- */
+    if (strcmp(cmd, "PITCH_STEPS") == 0) {
+        if (g_pitch.move_active) { uart_puts_pi("BUSY PITCH\n"); return; }
+
+        char *steps_s = next_token(&ctx);
+        char *freq_s  = next_token(&ctx);
+        if (!steps_s) { uart_puts_pi("ERR missing_steps\n"); return; }
+
+        int32_t  steps = (int32_t)strtol(steps_s, NULL, 10);
+        uint32_t freq  = freq_s ? (uint32_t)strtoul(freq_s, NULL, 10) : STEPPER_DEFAULT_FREQ_HZ;
+        if (freq == 0u) freq = STEPPER_DEFAULT_FREQ_HZ;
+
+        if (!stepper_start_move_steps(&g_pitch, steps, freq)) {
+            uart_puts_pi("ERR stepper_config_failed\n");
+            return;
+        }
+        uart_send_ok();
+        return;
+    }
+
+    /* --- FIRE <steps> [freq_hz] ---
+     * Ensure servo is at home, start indexer, then servo extend/retract. */
+    if (strcmp(cmd, "FIRE") == 0) {
+        if (g_fire_state != FIRE_IDLE) { uart_puts_pi("BUSY FEED\n"); return; }
+
+        char *steps_s = next_token(&ctx);
+        char *freq_s  = next_token(&ctx);
+        int32_t  steps = steps_s ? (int32_t)strtol(steps_s, NULL, 10)
+                                 : (int32_t)INDEXER_DEFAULT_STEPS;
+        uint32_t freq  = freq_s ? (uint32_t)strtoul(freq_s, NULL, 10) : STEPPER_DEFAULT_FREQ_HZ;
+        if (steps <= 0)  steps = (int32_t)INDEXER_DEFAULT_STEPS;
+        if (freq == 0u)  freq  = STEPPER_DEFAULT_FREQ_HZ;
+
+        /* Servo must be at HOME before indexer can move */
+        servo_set(SERVO_HOME_US);
+        sleep_ms(SERVO_PRE_FIRE_MS);
+
+        if (!stepper_start_move_steps(&g_indexer, steps, freq)) {
+            uart_puts_pi("ERR indexer_config_failed\n");
+            return;
+        }
+        g_fire_state = FIRE_INDEXER_MOVING;
+        uart_send_ok();
+        return;
+    }
+
+    /* --- FEED [counts] — backward-compat alias for FIRE --- */
+    if (strcmp(cmd, "FEED") == 0) {
+        if (g_fire_state != FIRE_IDLE) { uart_puts_pi("BUSY FEED\n"); return; }
+        servo_set(SERVO_HOME_US);
+        sleep_ms(SERVO_PRE_FIRE_MS);
+        if (!stepper_start_move_steps(&g_indexer, (int32_t)INDEXER_DEFAULT_STEPS,
+                                      STEPPER_DEFAULT_FREQ_HZ)) {
+            uart_puts_pi("ERR indexer_config_failed\n");
+            return;
+        }
+        g_fire_state = FIRE_INDEXER_MOVING;
+        uart_send_ok();
+        return;
+    }
+
+    /* --- FEED_MS <ms> — backward-compat alias for FIRE --- */
+    if (strcmp(cmd, "FEED_MS") == 0) {
+        if (g_fire_state != FIRE_IDLE) { uart_puts_pi("BUSY FEED\n"); return; }
+        servo_set(SERVO_HOME_US);
+        sleep_ms(SERVO_PRE_FIRE_MS);
+        if (!stepper_start_move_steps(&g_indexer, (int32_t)INDEXER_DEFAULT_STEPS,
+                                      STEPPER_DEFAULT_FREQ_HZ)) {
+            uart_puts_pi("ERR indexer_config_failed\n");
+            return;
+        }
+        g_fire_state = FIRE_INDEXER_MOVING;
         uart_send_ok();
         return;
     }
@@ -507,48 +629,27 @@ static void process_command(char *line) {
         return;
     }
 
-    /* --- FEED --- */
-    if (strcmp(cmd, "FEED") == 0) {
-        if (g_feed_active) { uart_puts_pi("BUSY FEED\n"); return; }
-        char *cnt_s = next_token(&ctx);
-        int32_t counts = cnt_s ? (int32_t)strtoul(cnt_s, NULL, 10) : (int32_t)FEED_DEFAULT_COUNTS;
-        if (counts <= 0) counts = (int32_t)FEED_DEFAULT_COUNTS;
-        feed_start(counts);
-        uart_send_ok();
-        return;
-    }
-
-    /* --- FEED_MS --- */
-    if (strcmp(cmd, "FEED_MS") == 0) {
-        if (g_feed_active) { uart_puts_pi("BUSY FEED\n"); return; }
-        char *ms_s = next_token(&ctx);
-        if (!ms_s) { uart_puts_pi("ERR missing_ms\n"); return; }
-        uint32_t ms = (uint32_t)strtoul(ms_s, NULL, 10);
-        if (ms == 0u) { uart_puts_pi("ERR bad_ms\n"); return; }
-        feed_start_ms(ms);
-        uart_send_ok();
-        return;
-    }
-
     /* --- HOME --- */
     if (strcmp(cmd, "HOME") == 0) {
-        /* Zero counters — operator is responsible for physical position */
-        g_yaw.completed_steps   = 0u;
-        g_yaw.target_steps      = 0u;
-        g_pitch.completed_steps = 0u;
-        g_pitch.target_steps    = 0u;
+        g_yaw.completed_steps     = 0u;
+        g_yaw.target_steps        = 0u;
+        g_pitch.completed_steps   = 0u;
+        g_pitch.target_steps      = 0u;
+        g_indexer.completed_steps = 0u;
+        g_indexer.target_steps    = 0u;
         uart_send_ok();
         return;
     }
 
     /* --- STATUS --- */
     if (strcmp(cmd, "STATUS") == 0) {
-        char buf[80];
+        char buf[96];
         snprintf(buf, sizeof(buf),
-            "STATUS yaw_moving=%u pitch_moving=%u feed_active=%u spin1=%u spin2=%u\n",
+            "STATUS yaw_moving=%u pitch_moving=%u indexer_moving=%u fire_active=%u spin1=%u spin2=%u\n",
             (unsigned)g_yaw.move_active,
             (unsigned)g_pitch.move_active,
-            (unsigned)g_feed_active,
+            (unsigned)g_indexer.move_active,
+            (unsigned)(g_fire_state != FIRE_IDLE),
             (unsigned)g_spin[0],
             (unsigned)g_spin[1]);
         uart_puts_pi(buf);
@@ -560,10 +661,11 @@ static void process_command(char *line) {
         yaw_vel_stop_immediate();
         stepper_force_idle(&g_yaw);
         stepper_force_idle(&g_pitch);
-        feed_stop();
+        stepper_force_idle(&g_indexer);
+        g_fire_state = FIRE_IDLE;
+        servo_set(SERVO_HOME_US);
         g_spin[0] = 0u;
         g_spin[1] = 0u;
-        /* Clear any pending DONE that would be confusing after estop */
         g_send_done_yaw   = false;
         g_send_done_pitch = false;
         g_send_done_feed  = false;
@@ -579,19 +681,18 @@ static void process_command(char *line) {
  * ========================================================================= */
 
 int main(void) {
-    stdio_init_all();   /* enables USB CDC serial */
+    stdio_init_all();
 
-    /* Wait for USB CDC host connection before sending anything.
-     * On the Pi, pyserial opening /dev/ttyACM0 triggers this. */
-    while (!stdio_usb_connected()) {
-        sleep_ms(10);
-    }
-    sleep_ms(100);      /* brief settle after connect */
-    uart_send_boot();
+    while (!stdio_usb_connected()) sleep_ms(10);
+    sleep_ms(100);
+
+    /* Servo must be at home before anything else can move */
+    servo_init();
 
     /* Steppers */
     stepper_init_gpio(&g_yaw);
     stepper_init_gpio(&g_pitch);
+    stepper_init_gpio(&g_indexer);
     irq_set_exclusive_handler(PWM_DEFAULT_IRQ_NUM(), pwm_irq_handler);
     irq_set_enabled(PWM_DEFAULT_IRQ_NUM(), true);
 
@@ -601,18 +702,16 @@ int main(void) {
     dshot_init_sm(pio, 0u, DSHOT_PIN_1, offset);
     dshot_init_sm(pio, 1u, DSHOT_PIN_2, offset);
 
-    /* Feed motor */
-    feed_init();
+    uart_send_boot();
 
-    /* Line buffer for incoming commands */
-    char line[LINE_BUF_SIZE];
+    char     line[LINE_BUF_SIZE];
     uint32_t line_len = 0u;
 
     absolute_time_t next_dshot        = get_absolute_time();
     absolute_time_t next_yaw_vel_ramp = get_absolute_time();
 
     while (true) {
-        /* ---- Read USB CDC (non-blocking) ---- */
+        /* Read USB CDC (non-blocking) */
         int raw;
         while ((raw = getchar_timeout_us(0)) != PICO_ERROR_TIMEOUT) {
             char ch = (char)raw;
@@ -625,29 +724,28 @@ int main(void) {
             } else if (line_len < LINE_BUF_SIZE - 1u) {
                 line[line_len++] = ch;
             } else {
-                /* Buffer overflow — discard */
                 line_len = 0u;
                 uart_puts_pi("ERR line_too_long\n");
             }
         }
 
-        /* ---- Yaw velocity ramp at 1 ms interval ---- */
+        /* Yaw velocity ramp at 1 ms */
         if (absolute_time_diff_us(get_absolute_time(), next_yaw_vel_ramp) <= 0) {
             yaw_vel_ramp_step();
             next_yaw_vel_ramp = delayed_by_us(next_yaw_vel_ramp, 1000u);
         }
 
-        /* ---- DShot at 1 ms interval ---- */
+        /* DShot at 1 ms */
         if (absolute_time_diff_us(get_absolute_time(), next_dshot) <= 0) {
             dshot_send(pio, 0u, g_spin[0]);
             dshot_send(pio, 1u, g_spin[1]);
             next_dshot = delayed_by_us(next_dshot, DSHOT_SEND_INTERVAL_US);
         }
 
-        /* ---- Timed FEED completion ---- */
-        feed_timed_update();
+        /* Fire state machine */
+        fire_task();
 
-        /* ---- Proactive DONE notifications ---- */
+        /* Proactive DONE notifications */
         if (g_send_done_yaw) {
             g_send_done_yaw = false;
             uart_puts_pi("DONE YAW\n");

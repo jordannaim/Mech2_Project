@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:biqu.equipment)",
+      "WebFetch(domain:www.omc-stepperonline.com)",
+      "WebSearch",
+      "WebFetch(domain:www.analog.com)",
+      "WebFetch(domain:www.adafruit.com)",
+      "WebFetch(domain:learn.adafruit.com)",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}

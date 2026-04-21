@@ -1,14 +1,15 @@
 """
 pico_comms.py — Serial bridge to the Pico turret controller.
 
-Protocol: text lines over UART, newline-terminated.
+Protocol: text lines over USB CDC, newline-terminated.
 
 Pi → Pico:
+  YAW_VEL <signed_freq_hz>
   YAW <deg> [freq_hz]
   PITCH <deg> [freq_hz]
+  PITCH_STEPS <n> [freq_hz]
+  FIRE <steps> [freq_hz]
   SPIN <t1> <t2>          (DShot throttle 0-2047 each)
-  FEED [counts]
-    FEED_MS <milliseconds>
   HOME
   STATUS
   ESTOP
@@ -19,7 +20,7 @@ Pico → Pi:
   DONE YAW
   DONE PITCH
   DONE FEED
-  STATUS yaw_moving=0 pitch_moving=0 feed_active=0 spin1=0 spin2=0
+  STATUS yaw_moving=0 pitch_moving=0 indexer_moving=0 fire_active=0 spin1=0 spin2=0
   ERR <reason>
   BOOT
 """
@@ -41,7 +42,9 @@ logger = logging.getLogger(__name__)
 class PicoStatus:
     yaw_moving: bool = False
     pitch_moving: bool = False
-    feed_active: bool = False
+    indexer_moving: bool = False
+    fire_active: bool = False
+    feed_active: bool = False   # alias for fire_active (backward compat)
     spin1: int = 0
     spin2: int = 0
 
@@ -54,14 +57,12 @@ class PicoComms:
         self._running = False
         self._reader_thread: Optional[threading.Thread] = None
 
-        # Synchronization events
-        self._ack = threading.Event()          # set on OK
-        self._done_yaw = threading.Event()
+        self._ack        = threading.Event()
+        self._done_yaw   = threading.Event()
         self._done_pitch = threading.Event()
-        self._done_feed = threading.Event()
-        self._boot = threading.Event()
+        self._done_feed  = threading.Event()
+        self._boot       = threading.Event()
 
-        # Only one command in flight at a time
         self._send_lock = threading.Lock()
 
         self._status = PicoStatus()
@@ -73,13 +74,9 @@ class PicoComms:
     # ------------------------------------------------------------------
 
     def connect(self, boot_timeout: float = 3.0) -> bool:
-        """Open serial port and start background reader. Returns True on success."""
         try:
             self._serial = serial.Serial(
-                self._port,
-                self._baud,
-                timeout=0.1,
-                write_timeout=1.0,
+                self._port, self._baud, timeout=0.1, write_timeout=1.0,
             )
         except serial.SerialException as exc:
             logger.error("Failed to open %s: %s", self._port, exc)
@@ -91,11 +88,10 @@ class PicoComms:
         )
         self._reader_thread.start()
 
-        # Wait for BOOT message (optional — Pico may already be running)
         if self._boot.wait(timeout=boot_timeout):
             logger.info("Pico BOOT received")
         else:
-            logger.info("No BOOT message within %.1fs — assuming Pico already running", boot_timeout)
+            logger.info("No BOOT within %.1fs — assuming Pico already running", boot_timeout)
 
         return True
 
@@ -144,14 +140,12 @@ class PicoComms:
             logger.info("Pitch move complete")
         elif line == "DONE FEED":
             self._done_feed.set()
-            logger.info("Feed complete")
+            logger.info("Fire/feed complete")
         elif line.startswith("BUSY"):
             logger.warning("Pico busy: %s", line)
-            # Still counts as acknowledgment so caller isn't stuck
             self._ack.set()
         elif line.startswith("STATUS"):
             self._parse_status(line)
-            # STATUS is also an ack
             self._ack.set()
         elif line.startswith("ERR"):
             self._last_error_line = line
@@ -161,25 +155,26 @@ class PicoComms:
             logger.debug("Unhandled Pico line: %s", line)
 
     def _parse_status(self, line: str) -> None:
-        # STATUS yaw_moving=0 pitch_moving=0 feed_active=0 spin1=0 spin2=0
         fields: dict[str, str] = {}
         for token in line.split()[1:]:
             if "=" in token:
                 k, v = token.split("=", 1)
                 fields[k] = v
         with self._status_lock:
-            self._status.yaw_moving = fields.get("yaw_moving", "0") == "1"
-            self._status.pitch_moving = fields.get("pitch_moving", "0") == "1"
-            self._status.feed_active = fields.get("feed_active", "0") == "1"
+            self._status.yaw_moving     = fields.get("yaw_moving", "0")     == "1"
+            self._status.pitch_moving   = fields.get("pitch_moving", "0")   == "1"
+            self._status.indexer_moving = fields.get("indexer_moving", "0") == "1"
+            fire_active = fields.get("fire_active", fields.get("feed_active", "0")) == "1"
+            self._status.fire_active  = fire_active
+            self._status.feed_active  = fire_active  # alias
             self._status.spin1 = int(fields.get("spin1", "0"))
             self._status.spin2 = int(fields.get("spin2", "0"))
 
     # ------------------------------------------------------------------
-    # Internal command sender
+    # Internal sender
     # ------------------------------------------------------------------
 
     def _send(self, cmd: str, ack_timeout: float = 1.0, warn_on_timeout: bool = True) -> bool:
-        """Send a command line, wait for OK/ACK. Returns True if acked."""
         if not self._serial or not self._serial.is_open:
             logger.error("Serial not open")
             return False
@@ -200,7 +195,6 @@ class PicoComms:
                     logger.warning("No ACK for command: %s", cmd)
                 return False
 
-            # If Pico acknowledged with ERR, treat command as failed.
             if self._last_error_line is not None:
                 return False
             return True
@@ -210,115 +204,97 @@ class PicoComms:
     # ------------------------------------------------------------------
 
     def set_yaw_velocity(self, freq_hz: int, ack_timeout: float = 0.03) -> bool:
-        """
-        Run yaw continuously at freq_hz with no step limit.
-        Positive = right, negative = left, 0 = stop.
-        Non-blocking — no DONE event will be sent by the Pico.
-        Used for smooth vision-based alignment.
-        """
-        # YAW_VEL is often used in a tight loop, so keep the default ACK wait
-        # short, but allow callers to request a longer burst-start window.
-        # Don't spam warnings for frequent stop commands while aligning.
         warn = (ack_timeout >= 0.05) and (freq_hz != 0)
         return self._send(f"YAW_VEL {freq_hz}", ack_timeout=ack_timeout, warn_on_timeout=warn)
 
     def move_yaw(self, degrees: float, freq_hz: int = 500) -> bool:
-        """Start yaw move. Returns True when Pico acknowledges. Non-blocking."""
         self._done_yaw.clear()
         return self._send(f"YAW {degrees:.2f} {freq_hz}")
 
     def move_pitch(self, degrees: float, freq_hz: int = 500) -> bool:
-        """Start pitch move. Returns True when Pico acknowledges. Non-blocking."""
         self._done_pitch.clear()
         return self._send(f"PITCH {degrees:.2f} {freq_hz}")
 
+    def move_pitch_steps(self, steps: int, freq_hz: int = 400) -> bool:
+        """Send PITCH_STEPS <steps> — non-blocking after ACK."""
+        self._done_pitch.clear()
+        return self._send(f"PITCH_STEPS {steps} {freq_hz}")
+
     def wait_yaw(self, timeout: float = 10.0) -> bool:
-        """Block until DONE YAW or timeout. Returns True on success."""
         result = self._done_yaw.wait(timeout=timeout)
         if not result:
             logger.warning("Timed out waiting for DONE YAW (%.1fs)", timeout)
         return result
 
     def wait_pitch(self, timeout: float = 10.0) -> bool:
-        """Block until DONE PITCH or timeout. Returns True on success."""
         result = self._done_pitch.wait(timeout=timeout)
         if not result:
             logger.warning("Timed out waiting for DONE PITCH (%.1fs)", timeout)
         return result
 
-    def wait_feed(self, timeout: float = 5.0) -> bool:
-        """Block until DONE FEED or timeout. Returns True on success."""
+    def wait_feed(self, timeout: float = 10.0) -> bool:
         result = self._done_feed.wait(timeout=timeout)
         if not result:
             logger.warning("Timed out waiting for DONE FEED (%.1fs)", timeout)
         return result
 
     def move_yaw_sync(self, degrees: float, freq_hz: int = 500, timeout: float = 10.0) -> bool:
-        """Send YAW and block until move completes."""
         if not self.move_yaw(degrees, freq_hz):
             return False
         return self.wait_yaw(timeout)
 
-    def move_pitch_sync(self, degrees: float, freq_hz: int = 500, timeout: float = 10.0) -> bool:
-        """Send PITCH and block until move completes."""
+    def move_pitch_sync(self, degrees: float, freq_hz: int = 500, timeout: float = 15.0) -> bool:
         if not self.move_pitch(degrees, freq_hz):
             return False
         return self.wait_pitch(timeout)
 
+    def move_pitch_steps_sync(self, steps: int, freq_hz: int = 400, timeout: float = 15.0) -> bool:
+        """Send PITCH_STEPS and block until DONE PITCH."""
+        if not self.move_pitch_steps(steps, freq_hz):
+            return False
+        return self.wait_pitch(timeout)
+
     def set_spin(self, throttle1: int, throttle2: int) -> bool:
-        """Set flywheel DShot throttles (0-2047 each)."""
         t1 = max(0, min(2047, throttle1))
         t2 = max(0, min(2047, throttle2))
         return self._send(f"SPIN {t1} {t2}")
 
-    def feed(self, counts: Optional[int] = None) -> bool:
-        """Trigger feed motor. Non-blocking after Pico ACK."""
+    def fire(self, steps: int) -> bool:
+        """Send FIRE <steps> — non-blocking after ACK."""
         self._done_feed.clear()
-        cmd = f"FEED {counts}" if counts is not None else "FEED"
-        return self._send(cmd)
+        return self._send(f"FIRE {steps}")
 
-    def feed_sync(self, counts: Optional[int] = None, timeout: float = 5.0) -> bool:
-        """Feed and block until DONE FEED."""
+    def fire_sync(self, steps: int, timeout: float = 8.0) -> bool:
+        """Send FIRE <steps> and block until DONE FEED (full indexer + servo sequence)."""
+        if not self.fire(steps):
+            return False
+        return self.wait_feed(timeout)
+
+    def feed(self, counts: Optional[int] = None) -> bool:
+        """Trigger fire sequence (backward-compat; uses FIRE command)."""
+        self._done_feed.clear()
+        return self._send("FEED")
+
+    def feed_sync(self, counts: Optional[int] = None, timeout: float = 8.0) -> bool:
         if not self.feed(counts):
             return False
         return self.wait_feed(timeout)
 
     def feed_time(self, duration_s: float) -> bool:
-        """
-        Trigger feed for a fixed on-time in seconds. Non-blocking after Pico ACK.
-        Requires Pico firmware support for FEED_MS.
-        """
+        """Trigger fire sequence (backward-compat; uses FIRE command)."""
         self._done_feed.clear()
-        ms = max(1, int(round(duration_s * 1000.0)))
-        if self._send(f"FEED_MS {ms}"):
-            return True
+        return self._send("FEED_MS 420")
 
-        # Backward compatibility: older firmware may not implement FEED_MS.
-        if self._last_error_line == "ERR unknown_command":
-            # Approximate conversion based on historical default: 200 counts
-            # over ~0.75 s => ~267 counts/s.
-            fallback_counts = max(1, int(round(duration_s * 267.0)))
-            logger.warning(
-                "FEED_MS unsupported by firmware; falling back to FEED %d counts",
-                fallback_counts,
-            )
-            return self.feed(fallback_counts)
-
-        return False
-
-    def feed_time_sync(self, duration_s: float, timeout: float = 5.0) -> bool:
-        """Timed feed and block until DONE FEED."""
+    def feed_time_sync(self, duration_s: float, timeout: float = 8.0) -> bool:
+        """Backward-compat: maps to fire_sync with default step count."""
         if not self.feed_time(duration_s):
             return False
         return self.wait_feed(timeout)
 
     def home(self) -> bool:
-        """Zero position counters (no motion)."""
         return self._send("HOME")
 
     def estop(self) -> bool:
-        """Emergency stop all motors."""
-        # ESTOP is urgent — bypass the send lock if needed
         if not self._serial or not self._serial.is_open:
             return False
         try:
@@ -329,19 +305,20 @@ class PicoComms:
         return True
 
     def get_status(self, timeout: float = 1.0) -> PicoStatus:
-        """Query Pico status. Returns latest known status."""
         self._send("STATUS", ack_timeout=timeout)
         with self._status_lock:
             return PicoStatus(
                 yaw_moving=self._status.yaw_moving,
                 pitch_moving=self._status.pitch_moving,
-                feed_active=self._status.feed_active,
+                indexer_moving=self._status.indexer_moving,
+                fire_active=self._status.fire_active,
+                feed_active=self._status.fire_active,
                 spin1=self._status.spin1,
                 spin2=self._status.spin2,
             )
 
     # ------------------------------------------------------------------
-    # Context manager support
+    # Context manager
     # ------------------------------------------------------------------
 
     def __enter__(self) -> "PicoComms":
